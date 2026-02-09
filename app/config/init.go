@@ -21,6 +21,7 @@ type Initialization struct {
 	CheckRateLimitRepo     repository.RateLimitRepository
 	ClientSubscriptionRepo repository.ClientSubscriptionRepository
 	SubscriptionRepo       repository.SubscriptionRepository
+	FileRepo               repository.ImageRepository
 
 	AdminSvc          service.AdminService
 	ClientSvc         service.ClientService
@@ -31,6 +32,7 @@ type Initialization struct {
 	RoleAccessMenuSvc service.RoleMenuAccessService
 	AuthSvc           service.AuthService
 	SubscriptionSvc   service.SubscriptionService
+	FileSvc           service.FileService
 
 	AdminCtrl          controller.AdminController
 	ClientCtrl         controller.ClientController
@@ -41,6 +43,7 @@ type Initialization struct {
 	RoleAccessMenuCtrl controller.RoleAccessMenuController
 	AuthCtrl           controller.AuthController
 	SubscriptionCtrl   controller.SubscriptionController
+	FileCtrl           controller.FileController
 }
 
 func NewInitialization(
@@ -57,6 +60,7 @@ func NewInitialization(
 	checkRateLimitRepo repository.RateLimitRepository,
 	clientSubscriptionRepo repository.ClientSubscriptionRepository,
 	subscriptionRepo repository.SubscriptionRepository,
+	fileRepo repository.ImageRepository,
 
 	adminSvc service.AdminService,
 	clientSvc service.ClientService,
@@ -67,6 +71,7 @@ func NewInitialization(
 	roleAccessMenuSvc service.RoleMenuAccessService,
 	authSvc service.AuthService,
 	subscriptionSvc service.SubscriptionService,
+	fileSvc service.FileService,
 
 	adminCtrl controller.AdminController,
 	clientCtrl controller.ClientController,
@@ -77,6 +82,7 @@ func NewInitialization(
 	roleAccessMenuCtrl controller.RoleAccessMenuController,
 	authCtrl controller.AuthController,
 	subscriptionCtrl controller.SubscriptionController,
+	fileCtrl controller.FileController,
 ) *Initialization {
 	return &Initialization{
 		AdminRepo:              adminRepo,
@@ -92,6 +98,7 @@ func NewInitialization(
 		CheckRateLimitRepo:     checkRateLimitRepo,
 		ClientSubscriptionRepo: clientSubscriptionRepo,
 		SubscriptionRepo:       subscriptionRepo,
+		FileRepo:               fileRepo,
 
 		AdminSvc:          adminSvc,
 		ClientSvc:         clientSvc,
@@ -102,6 +109,7 @@ func NewInitialization(
 		RoleAccessMenuSvc: roleAccessMenuSvc,
 		AuthSvc:           authSvc,
 		SubscriptionSvc:   subscriptionSvc,
+		FileSvc:           fileSvc,
 
 		AdminCtrl:          adminCtrl,
 		ClientCtrl:         clientCtrl,
@@ -112,5 +120,6 @@ func NewInitialization(
 		RoleAccessMenuCtrl: roleAccessMenuCtrl,
 		AuthCtrl:           authCtrl,
 		SubscriptionCtrl:   subscriptionCtrl,
+		FileCtrl:           fileCtrl,
 	}
 }

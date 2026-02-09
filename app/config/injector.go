@@ -7,11 +7,16 @@ import (
 	"github.com/google/wire"
 
 	"harjonan.id/user-service/app/controller"
+	r2 "harjonan.id/user-service/app/infra/r2"
 	"harjonan.id/user-service/app/repository"
 	"harjonan.id/user-service/app/service"
 )
 
 var db = wire.NewSet(ConnectToMongoDB)
+
+var r2Set = wire.NewSet(
+	r2.MustNew,
+)
 
 var repoSet = wire.NewSet(
 	repository.AdminRepositoryInit, wire.Bind(new(repository.AdminRepository), new(*repository.AdminRepositoryImpl)),
@@ -27,6 +32,7 @@ var repoSet = wire.NewSet(
 	repository.RateLimitRepositoryInit, wire.Bind(new(repository.RateLimitRepository), new(*repository.RateLimitRepositoryImpl)),
 	repository.ClientSubscriptionRepositoryInit, wire.Bind(new(repository.ClientSubscriptionRepository), new(*repository.ClientSubscriptionRepositoryImpl)),
 	repository.SubscriptionRepositoryInit, wire.Bind(new(repository.SubscriptionRepository), new(*repository.SubscriptionRepositoryImpl)),
+	repository.ImageRepositoryInit, wire.Bind(new(repository.ImageRepository), new(*repository.ImageRepositoryImpl)),
 )
 
 var serviceSet = wire.NewSet(
@@ -40,6 +46,7 @@ var serviceSet = wire.NewSet(
 	service.NewAuthService, wire.Bind(new(service.AuthService), new(*service.AuthServiceImpl)),
 	service.NewSubscriptionService, wire.Bind(new(service.SubscriptionService), new(*service.SubscriptionServiceImpl)),
 	service.NewSubscriptionGuardService, wire.Bind(new(service.SubscriptionGuardService), new(*service.SubscriptionGuardServiceImpl)),
+	service.NewFileService, wire.Bind(new(service.FileService), new(*service.FileServiceImpl)),
 )
 
 var controllerSet = wire.NewSet(
@@ -52,12 +59,14 @@ var controllerSet = wire.NewSet(
 	controller.RoleAccessMenuControllerInit, wire.Bind(new(controller.RoleAccessMenuController), new(*controller.RoleAccessMenuControllerImpl)),
 	controller.AuthControllerInit, wire.Bind(new(controller.AuthController), new(*controller.AuthControllerImpl)),
 	controller.SubscriptionControllerInit, wire.Bind(new(controller.SubscriptionController), new(*controller.SubscriptionControllerImpl)),
+	controller.FileControllerInit, wire.Bind(new(controller.FileController), new(*controller.FileControllerImpl)),
 )
 
 func Init() *Initialization {
 	wire.Build(
 		NewInitialization,
 		db,
+		r2Set,
 		repoSet,
 		serviceSet,
 		controllerSet,

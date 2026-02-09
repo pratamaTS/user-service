@@ -101,5 +101,11 @@ func Init(init *config.Initialization) *gin.Engine {
 		subscription.POST("/activate-from-master", init.SubscriptionCtrl.ActivateFromMaster)
 	}
 
+	files := router.Group("/files", middleware.JWTAuthMiddleware())
+	{
+		files.POST("/upload", init.FileCtrl.Upload)
+		files.GET("/*key", init.FileCtrl.Get) // pakai wildcard biar key bisa ada slash
+	}
+
 	return router
 }

@@ -181,7 +181,8 @@ func (u *RoleRepositoryImpl) DeleteRole(uuid string) error {
 }
 
 func RoleRepositoryInit(mongoClient *mongo.Client) *RoleRepositoryImpl {
-	roleCollection := mongoClient.Database("db_portal_general").Collection("cl_roles")
+	dbName := helpers.ProvideDBName()
+	roleCollection := mongoClient.Database(dbName).Collection("roles")
 	return &RoleRepositoryImpl{
 		roleCollection: roleCollection,
 	}

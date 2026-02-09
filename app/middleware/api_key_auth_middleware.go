@@ -10,6 +10,11 @@ import (
 func APIKeyAuthMiddleware() gin.HandlerFunc {
 	expectedApiKey := os.Getenv("API_KEY")
 	return func(c *gin.Context) {
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
 		apiKey := c.GetHeader("X-API-KEY")
 		if apiKey == "" || apiKey != expectedApiKey {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{

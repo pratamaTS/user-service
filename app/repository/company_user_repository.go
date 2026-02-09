@@ -11,6 +11,7 @@ import (
 
 	"harjonan.id/user-service/app/domain/dao"
 	"harjonan.id/user-service/app/domain/dto"
+	"harjonan.id/user-service/app/helpers"
 )
 
 type CompanyUserRepository interface {
@@ -171,7 +172,8 @@ func (u *CompanyUserRepositoryImpl) DeleteCompanyUser(uuid string) error {
 }
 
 func CompanyUserRepositoryInit(mongoClient *mongo.Client) *CompanyUserRepositoryImpl {
-	collection := mongoClient.Database("db_portal_general").Collection("cl_company_users")
+	dbName := helpers.ProvideDBName()
+	collection := mongoClient.Database(dbName).Collection("company_users")
 	return &CompanyUserRepositoryImpl{
 		companyUserCollection: collection,
 	}

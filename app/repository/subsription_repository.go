@@ -32,12 +32,10 @@ func (r *SubscriptionRepositoryImpl) Upsert(data *dao.Subscription) (dao.Subscri
 	now := time.Now()
 	nowStr := now.Format(time.RFC3339)
 
-	// create vs update by uuid
 	if data.UUID == "" {
 		data.UUID = helpers.GenerateUUID()
 	}
 
-	// basic validate: master harus punya name+type
 	if data.Name == "" {
 		return dao.Subscription{}, errors.New("name required")
 	}
@@ -45,8 +43,6 @@ func (r *SubscriptionRepositoryImpl) Upsert(data *dao.Subscription) (dao.Subscri
 		return dao.Subscription{}, errors.New("type required")
 	}
 
-	// optional: aturan default sesuai bisnis kamu (biar konsisten di DB master)
-	// trial wajib 7 hari, price 0, limited
 	switch data.Type {
 	case dao.SubscriptionTrial:
 		data.BillingPeriod = dao.BillingWeekly
@@ -217,7 +213,8 @@ func (r *SubscriptionRepositoryImpl) Delete(uuid string) error {
 }
 
 func SubscriptionRepositoryInit(mongoClient *mongo.Client) *SubscriptionRepositoryImpl {
-	subscriptionCollection := mongoClient.Database("users").Collection("cl_subscriptions")
+	dbName := helpers.ProvideDBName()
+	subscriptionCollection := mongoClient.Database(dbName).Collection("subscriptions")
 	return &SubscriptionRepositoryImpl{
 		subscriptionCollection: subscriptionCollection,
 	}

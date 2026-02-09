@@ -7,6 +7,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"harjonan.id/user-service/app/helpers"
 )
 
 type RateLimitRepository interface {
@@ -69,7 +70,8 @@ func (u *RateLimitRepositoryImpl) CheckRateLimit(ctx context.Context, key string
 }
 
 func RateLimitRepositoryInit(mongoClient *mongo.Client) *RateLimitRepositoryImpl {
-	collection := mongoClient.Database("db_portal_general").Collection("cl_check_rate_limits")
+	dbName := helpers.ProvideDBName()
+	collection := mongoClient.Database(dbName).Collection("rate_limits")
 	return &RateLimitRepositoryImpl{
 		rateLimitCollection: collection,
 	}

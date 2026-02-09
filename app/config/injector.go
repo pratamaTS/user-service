@@ -25,6 +25,8 @@ var repoSet = wire.NewSet(
 	repository.ClientUserRepositoryInit, wire.Bind(new(repository.ClientUserRepository), new(*repository.ClientUserRepositoryImpl)),
 	repository.AuthRepositoryInit, wire.Bind(new(repository.AuthRepository), new(*repository.AuthRepositoryImpl)),
 	repository.RateLimitRepositoryInit, wire.Bind(new(repository.RateLimitRepository), new(*repository.RateLimitRepositoryImpl)),
+	repository.ClientSubscriptionRepositoryInit, wire.Bind(new(repository.ClientSubscriptionRepository), new(*repository.ClientSubscriptionRepositoryImpl)),
+	repository.SubscriptionRepositoryInit, wire.Bind(new(repository.SubscriptionRepository), new(*repository.SubscriptionRepositoryImpl)),
 )
 
 var serviceSet = wire.NewSet(
@@ -36,6 +38,8 @@ var serviceSet = wire.NewSet(
 	service.NewRoleService, wire.Bind(new(service.RoleService), new(*service.RoleServiceImpl)),
 	service.NewRoleMenuAccessService, wire.Bind(new(service.RoleMenuAccessService), new(*service.RoleMenuAccessServiceImpl)),
 	service.NewAuthService, wire.Bind(new(service.AuthService), new(*service.AuthServiceImpl)),
+	service.NewSubscriptionService, wire.Bind(new(service.SubscriptionService), new(*service.SubscriptionServiceImpl)),
+	service.NewSubscriptionGuardService, wire.Bind(new(service.SubscriptionGuardService), new(*service.SubscriptionGuardServiceImpl)),
 )
 
 var controllerSet = wire.NewSet(
@@ -47,6 +51,7 @@ var controllerSet = wire.NewSet(
 	controller.RoleControllerInit, wire.Bind(new(controller.RoleController), new(*controller.RoleControllerImpl)),
 	controller.RoleAccessMenuControllerInit, wire.Bind(new(controller.RoleAccessMenuController), new(*controller.RoleAccessMenuControllerImpl)),
 	controller.AuthControllerInit, wire.Bind(new(controller.AuthController), new(*controller.AuthControllerImpl)),
+	controller.SubscriptionControllerInit, wire.Bind(new(controller.SubscriptionController), new(*controller.SubscriptionControllerImpl)),
 )
 
 func Init() *Initialization {

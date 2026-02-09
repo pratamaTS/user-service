@@ -15,10 +15,12 @@ type Initialization struct {
 	RoleRepo           repository.RoleRepository
 	RoleAccessMenuRepo repository.RoleMenuAccessRepository
 
-	CompanyUserRepo    repository.CompanyUserRepository
-	ClientUserRepo     repository.ClientUserRepository
-	AuthRepo           repository.AuthRepository
-	CheckRateLimitRepo repository.RateLimitRepository
+	CompanyUserRepo        repository.CompanyUserRepository
+	ClientUserRepo         repository.ClientUserRepository
+	AuthRepo               repository.AuthRepository
+	CheckRateLimitRepo     repository.RateLimitRepository
+	ClientSubscriptionRepo repository.ClientSubscriptionRepository
+	SubscriptionRepo       repository.SubscriptionRepository
 
 	AdminSvc          service.AdminService
 	ClientSvc         service.ClientService
@@ -28,6 +30,7 @@ type Initialization struct {
 	RoleSvc           service.RoleService
 	RoleAccessMenuSvc service.RoleMenuAccessService
 	AuthSvc           service.AuthService
+	SubscriptionSvc   service.SubscriptionService
 
 	AdminCtrl          controller.AdminController
 	ClientCtrl         controller.ClientController
@@ -37,6 +40,7 @@ type Initialization struct {
 	RoleCtrl           controller.RoleController
 	RoleAccessMenuCtrl controller.RoleAccessMenuController
 	AuthCtrl           controller.AuthController
+	SubscriptionCtrl   controller.SubscriptionController
 }
 
 func NewInitialization(
@@ -51,6 +55,8 @@ func NewInitialization(
 	clientUserRepo repository.ClientUserRepository,
 	authRepo repository.AuthRepository,
 	checkRateLimitRepo repository.RateLimitRepository,
+	clientSubscriptionRepo repository.ClientSubscriptionRepository,
+	subscriptionRepo repository.SubscriptionRepository,
 
 	adminSvc service.AdminService,
 	clientSvc service.ClientService,
@@ -60,6 +66,7 @@ func NewInitialization(
 	roleSvc service.RoleService,
 	roleAccessMenuSvc service.RoleMenuAccessService,
 	authSvc service.AuthService,
+	subscriptionSvc service.SubscriptionService,
 
 	adminCtrl controller.AdminController,
 	clientCtrl controller.ClientController,
@@ -69,19 +76,22 @@ func NewInitialization(
 	roleCtrl controller.RoleController,
 	roleAccessMenuCtrl controller.RoleAccessMenuController,
 	authCtrl controller.AuthController,
+	subscriptionCtrl controller.SubscriptionController,
 ) *Initialization {
 	return &Initialization{
-		AdminRepo:          adminRepo,
-		ClientRepo:         clientRepo,
-		CompanyRepo:        companyRepo,
-		ParentMenuRepo:     parentMenuRepo,
-		MenuRepo:           menuRepo,
-		RoleRepo:           roleRepo,
-		RoleAccessMenuRepo: roleAccessMenuRepo,
-		CompanyUserRepo:    companyUserRepo,
-		ClientUserRepo:     clientUserRepo,
-		AuthRepo:           authRepo,
-		CheckRateLimitRepo: checkRateLimitRepo,
+		AdminRepo:              adminRepo,
+		ClientRepo:             clientRepo,
+		CompanyRepo:            companyRepo,
+		ParentMenuRepo:         parentMenuRepo,
+		MenuRepo:               menuRepo,
+		RoleRepo:               roleRepo,
+		RoleAccessMenuRepo:     roleAccessMenuRepo,
+		CompanyUserRepo:        companyUserRepo,
+		ClientUserRepo:         clientUserRepo,
+		AuthRepo:               authRepo,
+		CheckRateLimitRepo:     checkRateLimitRepo,
+		ClientSubscriptionRepo: clientSubscriptionRepo,
+		SubscriptionRepo:       subscriptionRepo,
 
 		AdminSvc:          adminSvc,
 		ClientSvc:         clientSvc,
@@ -91,6 +101,7 @@ func NewInitialization(
 		RoleSvc:           roleSvc,
 		RoleAccessMenuSvc: roleAccessMenuSvc,
 		AuthSvc:           authSvc,
+		SubscriptionSvc:   subscriptionSvc,
 
 		AdminCtrl:          adminCtrl,
 		ClientCtrl:         clientCtrl,
@@ -100,5 +111,6 @@ func NewInitialization(
 		RoleCtrl:           roleCtrl,
 		RoleAccessMenuCtrl: roleAccessMenuCtrl,
 		AuthCtrl:           authCtrl,
+		SubscriptionCtrl:   subscriptionCtrl,
 	}
 }

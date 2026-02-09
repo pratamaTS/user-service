@@ -40,16 +40,17 @@ type AuthRepositoryImpl struct {
 }
 
 func AuthRepositoryInit(mc *mongo.Client) *AuthRepositoryImpl {
-	db := mc.Database("db_portal_general")
+	dbName := helpers.ProvideDBName()
+	db := mc.Database(dbName)
 	return &AuthRepositoryImpl{
-		authCollection:        db.Collection("cl_auths"),
-		adminCollection:       db.Collection("cl_admins"),
-		userCollection:        db.Collection("cl_users"),
-		clientCollection:      db.Collection("cl_clients"),
-		companyCollection:     db.Collection("cl_companies"),
-		roleCollection:        db.Collection("cl_roles"),
-		clientUserCollection:  db.Collection("cl_client_users"),
-		companyUserCollection: db.Collection("cl_company_users"),
+		authCollection:        db.Collection("auths"),
+		adminCollection:       db.Collection("admins"),
+		userCollection:        db.Collection("users"),
+		clientCollection:      db.Collection("clients"),
+		companyCollection:     db.Collection("companies"),
+		roleCollection:        db.Collection("roles"),
+		clientUserCollection:  db.Collection("client_users"),
+		companyUserCollection: db.Collection("company_users"),
 	}
 }
 
@@ -486,6 +487,7 @@ func (r *AuthRepositoryImpl) buildAdminProfile(userUUID string) (*dto.UserProfil
 		Email:       admin.Email,
 		PhoneNumber: admin.PhoneNumber,
 		Address:     admin.Address,
+		IsCompany:   true,
 	}, nil
 }
 
@@ -523,5 +525,6 @@ func (r *AuthRepositoryImpl) buildClientUserProfile(userUUID string) (*dto.UserP
 		Email:       user.Email,
 		PhoneNumber: user.PhoneNumber,
 		Address:     user.Address,
+		IsCompany:   false,
 	}, nil
 }

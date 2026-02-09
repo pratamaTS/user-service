@@ -173,7 +173,8 @@ func (u *ParentMenuRepositoryImpl) DeleteParentMenu(uuid string) error {
 }
 
 func ParentMenuRepositoryInit(mongoClient *mongo.Client) *ParentMenuRepositoryImpl {
-	parentMenuCollection := mongoClient.Database("db_portal_general").Collection("cl_parent_menus")
+	dbName := helpers.ProvideDBName()
+	parentMenuCollection := mongoClient.Database(dbName).Collection("parent_menus")
 	return &ParentMenuRepositoryImpl{
 		parentMenuCollection: parentMenuCollection,
 	}

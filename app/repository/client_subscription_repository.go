@@ -33,7 +33,6 @@ func (r *ClientSubscriptionRepositoryImpl) ActivateFromMaster(clientUUID, subscr
 		return dao.ClientSubscription{}, errors.New("client_uuid & subscription_uuid required")
 	}
 
-	// ambil master subscription (buat duration)
 	var master dao.Subscription
 	if err := r.subMasterCol.FindOne(ctx, bson.M{"uuid": subscriptionUUID, "is_active": true}).Decode(&master); err != nil {
 		return dao.ClientSubscription{}, errors.New("master subscription not found / inactive")
@@ -44,7 +43,6 @@ func (r *ClientSubscriptionRepositoryImpl) ActivateFromMaster(clientUUID, subscr
 	expiredAt := startAt.AddDate(0, 0, master.DurationDays)
 	isActive := expiredAt.After(now)
 
-	// 1 client = 1 record aktif (upsert by client_uuid)
 	filter := bson.M{"client_uuid": clientUUID}
 
 	update := bson.M{
@@ -83,7 +81,6 @@ func (r *ClientSubscriptionRepositoryImpl) GetActiveByClientUUID(clientUUID stri
 		return nil, errors.New("client_uuid required")
 	}
 
-	// Ambil latest subscription untuk client (anggap 1 aktif; kalau kamu simpan history, ini tetap aman)
 	opts := options.FindOne().SetSort(bson.D{{Key: "created_at", Value: -1}})
 
 	var sub dao.ClientSubscription
@@ -92,10 +89,8 @@ func (r *ClientSubscriptionRepositoryImpl) GetActiveByClientUUID(clientUUID stri
 		return nil, err
 	}
 
-	// Auto-verify expiry
 	now := time.Now()
 	if !sub.ExpiredAt.IsZero() && now.After(sub.ExpiredAt) && sub.IsActive {
-		// mark inactive
 		_, _ = r.col.UpdateOne(ctx,
 			bson.M{"uuid": sub.UUID},
 			bson.M{"$set": bson.M{
@@ -135,12 +130,9 @@ func (r *ClientSubscriptionRepositoryImpl) ListClientBySubscriptionUUID(subscrip
 func (r *ClientSubscriptionRepositoryImpl) IsClientAllowed(clientUUID string) (bool, *dao.ClientSubscription, error) {
 	sub, err := r.GetActiveByClientUUID(clientUUID)
 	if err != nil {
-		// kalau subscription belum ada -> kamu mau block atau allow?
-		// default yang aman: BLOCK (tapi bisa kamu ubah ke allow).
 		return false, nil, err
 	}
 
-	// allowed kalau active dan belum expired
 	now := time.Now()
 	if sub.IsActive && (sub.ExpiredAt.IsZero() || now.Before(sub.ExpiredAt)) {
 		return true, sub, nil
@@ -150,7 +142,8 @@ func (r *ClientSubscriptionRepositoryImpl) IsClientAllowed(clientUUID string) (b
 }
 
 func ClientSubscriptionRepositoryInit(mongoClient *mongo.Client) *ClientSubscriptionRepositoryImpl {
-	col := mongoClient.Database("users").Collection("cl_client_subscriptions")
-	subMasterCol := mongoClient.Database("users").Collection("cl_subscriptions")
+	dbName := helpers.ProvideDBName()
+	col := mongoClient.Database(dbName).Collection("client_subscriptions")
+	subMasterCol := mongoClient.Database(dbName).Collection("subscriptions")
 	return &ClientSubscriptionRepositoryImpl{col: col, subMasterCol: subMasterCol}
 }

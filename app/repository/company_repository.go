@@ -183,7 +183,8 @@ func (u *CompanyRepositoryImpl) DeleteCompany(uuid string) error {
 }
 
 func CompanyRepositoryInit(mongoClient *mongo.Client) *CompanyRepositoryImpl {
-	companyCollection := mongoClient.Database("db_portal_general").Collection("cl_companies")
+	dbName := helpers.ProvideDBName()
+	companyCollection := mongoClient.Database(dbName).Collection("companies")
 	return &CompanyRepositoryImpl{
 		companyCollection: companyCollection,
 	}

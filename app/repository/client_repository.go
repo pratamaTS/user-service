@@ -173,7 +173,8 @@ func (u *ClientRepositoryImpl) DeleteClient(uuid string) error {
 }
 
 func ClientRepositoryInit(mongoClient *mongo.Client) *ClientRepositoryImpl {
-	clientCollection := mongoClient.Database("db_portal_general").Collection("cl_clients")
+	dbName := helpers.ProvideDBName()
+	clientCollection := mongoClient.Database(dbName).Collection("clients")
 	return &ClientRepositoryImpl{
 		clientCollection: clientCollection,
 	}

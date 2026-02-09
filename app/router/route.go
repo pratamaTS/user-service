@@ -92,5 +92,14 @@ func Init(init *config.Initialization) *gin.Engine {
 		role.DELETE("/:uuid", init.RoleCtrl.Delete)
 	}
 
+	subscription := router.Group("/subscriptions", middleware.JWTAuthMiddleware())
+	{
+		subscription.POST("/upsert", init.SubscriptionCtrl.Upsert)
+		subscription.GET("/:uuid", init.SubscriptionCtrl.Detail)
+		subscription.POST("/list", init.SubscriptionCtrl.List)
+		subscription.DELETE("/:uuid", init.SubscriptionCtrl.Delete)
+		subscription.POST("/activate-from-master", init.SubscriptionCtrl.ActivateFromMaster)
+	}
+
 	return router
 }

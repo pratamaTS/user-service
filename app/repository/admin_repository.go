@@ -11,6 +11,7 @@ import (
 
 	"harjonan.id/user-service/app/domain/dao"
 	"harjonan.id/user-service/app/domain/dto"
+	"harjonan.id/user-service/app/helpers"
 )
 
 type AdminRepository interface {
@@ -176,7 +177,8 @@ func (u *AdminRepositoryImpl) DeleteAdmin(uuid string) error {
 }
 
 func AdminRepositoryInit(mongoClient *mongo.Client) *AdminRepositoryImpl {
-	adminCollection := mongoClient.Database("db_portal_general").Collection("cl_admins")
+	dbName := helpers.ProvideDBName()
+	adminCollection := mongoClient.Database(dbName).Collection("admins")
 	return &AdminRepositoryImpl{
 		adminCollection: adminCollection,
 	}

@@ -11,6 +11,7 @@ import (
 
 	"harjonan.id/user-service/app/domain/dao"
 	"harjonan.id/user-service/app/domain/dto"
+	"harjonan.id/user-service/app/helpers"
 )
 
 type ClientUserRepository interface {
@@ -170,7 +171,8 @@ func (u *ClientUserRepositoryImpl) DeleteClientUser(uuid string) error {
 }
 
 func ClientUserRepositoryInit(mongoClient *mongo.Client) *ClientUserRepositoryImpl {
-	collection := mongoClient.Database("db_portal_general").Collection("cl_client_users")
+	dbName := helpers.ProvideDBName()
+	collection := mongoClient.Database(dbName).Collection("client_users")
 	return &ClientUserRepositoryImpl{
 		clientUserCollection: collection,
 	}

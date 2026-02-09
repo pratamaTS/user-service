@@ -11,4 +11,5 @@ type UserProfile struct {
 	Email       string     `bson:"email" json:"email"`
 	PhoneNumber string     `bson:"phone_number" json:"phone_number"`
 	Address     string     `bson:"address" json:"address"`
+	IsCompany   bool       `bson:"is_company" json:"is_company"`
 }

@@ -101,7 +101,7 @@ func (s *AuthServiceImpl) Register(ctx *gin.Context) {
 		subject = "CLIENT"
 	}
 
-	role, err = s.roleRepo.GetRoleByValue("ADMIN", subject)
+	role, err = s.roleRepo.GetRoleByValue("OWNER", subject)
 	if err != nil {
 		helpers.JsonErr[any](ctx, "role not found", http.StatusInternalServerError, err)
 		return
@@ -283,15 +283,16 @@ func (s *AuthServiceImpl) Me(ctx *gin.Context) {
 	if profile.Client.UUID != "" {
 		resp["client_uuid"] = profile.Client.UUID
 
-		allowed, sub, subErr := s.subscriptionGuardSvc.CheckClientAccess(ctx, profile.Client.UUID)
+		if !profile.IsCompany {
+			allowed, sub, subErr := s.subscriptionGuardSvc.CheckClientAccess(ctx, profile.Client.UUID)
+			if sub != nil {
+				resp["subscription"] = sub
+			}
 
-		if sub != nil {
-			resp["subscription"] = sub
-		}
-
-		if subErr != nil || !allowed {
-			helpers.JsonErr[any](ctx, "subscription inactive or expired", http.StatusForbidden, subErr)
-			return
+			if subErr != nil || !allowed {
+				helpers.JsonErr[any](ctx, "subscription inactive or expired", http.StatusForbidden, subErr)
+				return
+			}
 		}
 	}
 

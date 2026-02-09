@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"harjonan.id/user-service/app/domain/dao"
 	"harjonan.id/user-service/app/domain/dto"
+	"harjonan.id/user-service/app/helpers"
 )
 
 type UserRepository interface {
@@ -175,7 +176,8 @@ func (u *UserRepositoryImpl) DeleteUser(uuid string) error {
 }
 
 func UserRepositoryInit(mongoClient *mongo.Client) *UserRepositoryImpl {
-	userCollection := mongoClient.Database("db_portal_general").Collection("cl_users")
+	dbName := helpers.ProvideDBName()
+	userCollection := mongoClient.Database(dbName).Collection("users")
 	return &UserRepositoryImpl{
 		userCollection: userCollection,
 	}

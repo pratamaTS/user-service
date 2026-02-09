@@ -239,8 +239,9 @@ func (u *RoleMenuAccessRepositoryImpl) DeleteRoleMenuAccess(uuid string) error {
 }
 
 func RoleMenuAccessRepositoryInit(mongoClient *mongo.Client) *RoleMenuAccessRepositoryImpl {
-	collection := mongoClient.Database("db_portal_general").Collection("cl_role_menu_access")
-	menuCollection := mongoClient.Database("db_portal_general").Collection("cl_menus")
+	dbName := helpers.ProvideDBName()
+	collection := mongoClient.Database(dbName).Collection("role_menu_access")
+	menuCollection := mongoClient.Database(dbName).Collection("menus")
 	return &RoleMenuAccessRepositoryImpl{
 		roleMenuAccessCollection: collection,
 		menuCollection:           menuCollection,

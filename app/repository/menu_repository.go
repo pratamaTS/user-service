@@ -179,7 +179,8 @@ func (u *MenuRepositoryImpl) DeleteMenu(uuid string) error {
 }
 
 func MenuRepositoryInit(mongoClient *mongo.Client) *MenuRepositoryImpl {
-	menuCollection := mongoClient.Database("db_portal_general").Collection("cl_menus")
+	dbName := helpers.ProvideDBName()
+	menuCollection := mongoClient.Database(dbName).Collection("menus")
 	return &MenuRepositoryImpl{
 		menuCollection: menuCollection,
 	}

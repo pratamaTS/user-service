@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -10,13 +11,14 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"harjonan.id/user-service/app/domain/dao"
+	"harjonan.id/user-service/app/domain/dto"
 	"harjonan.id/user-service/app/helpers"
 )
 
 type ClientSubscriptionRepository interface {
 	ActivateFromMaster(clientUUID, subscriptionUUID, createdBy string) (dao.ClientSubscription, error)
 	GetActiveByClientUUID(clientUUID string) (*dao.ClientSubscription, error)
-	ListClientBySubscriptionUUID(subscriptionUUID string) ([]dao.ClientSubscription, error)
+	ListClientBySubscriptionUUID(req *dto.FilterRequest) ([]dao.ClientSubscriptionJoined, error)
 	IsClientAllowed(clientUUID string) (bool, *dao.ClientSubscription, error)
 }
 
@@ -105,21 +107,133 @@ func (r *ClientSubscriptionRepositoryImpl) GetActiveByClientUUID(clientUUID stri
 	return &sub, nil
 }
 
-func (r *ClientSubscriptionRepositoryImpl) ListClientBySubscriptionUUID(subscriptionUUID string) ([]dao.ClientSubscription, error) {
+func (r *ClientSubscriptionRepositoryImpl) ListClientBySubscriptionUUID(req *dto.FilterRequest) ([]dao.ClientSubscriptionJoined, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// ambil subscription_uuid dari filter_by (karena payload kamu "sama kayak list/fetch")
+	subUUIDAny := req.FilterBy["subscription_uuid"]
+	subscriptionUUID, _ := subUUIDAny.(string)
 	if subscriptionUUID == "" {
-		return nil, errors.New("subscription_uuid required")
+		return nil, errors.New("subscription_uuid required (put it in filter_by.subscription_uuid)")
 	}
 
-	cur, err := r.col.Find(ctx, bson.M{"subscription_uuid": subscriptionUUID}, options.Find().SetSort(bson.D{{Key: "created_at", Value: -1}}))
+	// =========================
+	// 1) MATCH (FILTER)
+	// =========================
+	filter := bson.M{
+		"subscription_uuid": subscriptionUUID,
+	}
+
+	// apply filter_by lainnya (kecuali subscription_uuid supaya ga dobel)
+	for key, val := range req.FilterBy {
+		if key == "" || val == nil || key == "subscription_uuid" {
+			continue
+		}
+
+		// support filter khusus untuk client.* dengan prefix "client."
+		// contoh: filter_by: { "client.is_active": true }
+		filter[key] = val
+	}
+
+	// =========================
+	// 2) SEARCH (regex i)
+	// =========================
+	// Search bisa kena field di client_subscriptions dan field client hasil lookup
+	if req.Search != "" {
+		reg := bson.M{"$regex": req.Search, "$options": "i"}
+		filter["$or"] = []bson.M{
+			// fields di client_subscriptions
+			{"client_uuid": reg},
+			{"created_by": reg},
+			{"type": reg},
+			{"billing_period": reg},
+
+			// fields di client (hasil lookup)
+			{"client.name": reg},
+			{"client.url": reg},          // kalau field kamu "url"
+			{"client.host": reg},         // kalau field kamu "host"
+			{"client.phone_number": reg}, // kalau field kamu "phone_number"
+		}
+	}
+
+	// =========================
+	// 3) SORT (ikut template kamu)
+	// =========================
+	sort := bson.D{}
+	for key, val := range req.SortBy {
+		switch v := val.(type) {
+		case string:
+			if v == "asc" || v == "ASC" || v == "1" {
+				sort = append(sort, bson.E{Key: key, Value: 1})
+			} else {
+				sort = append(sort, bson.E{Key: key, Value: -1})
+			}
+		case float64:
+			if int(v) >= 0 {
+				sort = append(sort, bson.E{Key: key, Value: 1})
+			} else {
+				sort = append(sort, bson.E{Key: key, Value: -1})
+			}
+		default:
+			sort = append(sort, bson.E{Key: key, Value: 1})
+		}
+	}
+	if len(sort) == 0 {
+		sort = bson.D{{Key: "created_at", Value: -1}}
+	}
+
+	// =========================
+	// 4) PAGINATION (ikut template kamu)
+	// =========================
+	page := req.Pagination.Page
+	size := req.Pagination.PageSize
+	if page <= 0 {
+		page = 1
+	}
+	if size <= 0 || size > 200 {
+		size = 20
+	}
+	skip := int64((page - 1) * size)
+
+	// =========================
+	// 5) AGGREGATION PIPELINE
+	// =========================
+	pipeline := mongo.Pipeline{
+		// match + search
+		{{Key: "$match", Value: filter}},
+
+		// lookup ke clients
+		{{Key: "$lookup", Value: bson.M{
+			"from":         "clients", // ✅ nama collection clients
+			"localField":   "client_uuid",
+			"foreignField": "uuid", // ✅ field uuid di clients
+			"as":           "client",
+		}}},
+
+		// unwind supaya client jadi object
+		{{Key: "$unwind", Value: bson.M{
+			"path":                       "$client",
+			"preserveNullAndEmptyArrays": true, // kalau ada data orphan, tetap tampil
+		}}},
+
+		// sort
+		{{Key: "$sort", Value: sort}},
+
+		// pagination
+		{{Key: "$skip", Value: skip}},
+		{{Key: "$limit", Value: int64(size)}},
+	}
+
+	log.Printf("Aggregation Pipeline: %+v\n", pipeline)
+
+	cur, err := r.col.Aggregate(ctx, pipeline)
 	if err != nil {
 		return nil, err
 	}
 	defer cur.Close(ctx)
 
-	var list []dao.ClientSubscription
+	var list []dao.ClientSubscriptionJoined
 	if err := cur.All(ctx, &list); err != nil {
 		return nil, err
 	}

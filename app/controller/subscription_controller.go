@@ -11,6 +11,7 @@ type SubscriptionController interface {
 	List(c *gin.Context)
 	Delete(c *gin.Context)
 	ActivateFromMaster(c *gin.Context)
+	GetClientActiveSubscription(c *gin.Context)
 }
 
 type SubscriptionControllerImpl struct {
@@ -22,6 +23,9 @@ func (a SubscriptionControllerImpl) Detail(c *gin.Context)             { a.svc.D
 func (a SubscriptionControllerImpl) List(c *gin.Context)               { a.svc.List(c) }
 func (a SubscriptionControllerImpl) Delete(c *gin.Context)             { a.svc.Delete(c) }
 func (a SubscriptionControllerImpl) ActivateFromMaster(c *gin.Context) { a.svc.ActivateFromMaster(c) }
+func (a SubscriptionControllerImpl) GetClientActiveSubscription(c *gin.Context) {
+	a.svc.GetClientActiveSubscription(c)
+}
 
 func SubscriptionControllerInit(s service.SubscriptionService) *SubscriptionControllerImpl {
 	return &SubscriptionControllerImpl{svc: s}

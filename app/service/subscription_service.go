@@ -20,6 +20,7 @@ type SubscriptionService interface {
 	Delete(ctx *gin.Context)
 
 	ActivateFromMaster(ctx *gin.Context)
+	GetClientActiveSubscription(ctx *gin.Context)
 }
 
 type SubscriptionServiceImpl struct {
@@ -137,4 +138,19 @@ func (s *SubscriptionServiceImpl) ActivateFromMaster(ctx *gin.Context) {
 	}
 
 	helpers.JsonOK(ctx, "success", res)
+}
+
+func (s *SubscriptionServiceImpl) GetClientActiveSubscription(ctx *gin.Context) {
+	var req dto.FilterRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		helpers.JsonErr[any](ctx, "invalid request", http.StatusBadRequest, err)
+		return
+	}
+
+	data, err := s.clientSubscriptionRepo.ListClientBySubscriptionUUID(&req)
+	if err != nil {
+		helpers.JsonErr[any](ctx, "failed to get active subscription", http.StatusInternalServerError, err)
+		return
+	}
+	helpers.JsonOK(ctx, "success", data)
 }

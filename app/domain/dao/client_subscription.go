@@ -22,3 +22,8 @@ type ClientSubscription struct {
 	IsActive  bool   `json:"is_active" bson:"is_active"`
 	CreatedBy string `json:"created_by" bson:"created_by"`
 }
+
+type ClientSubscriptionJoined struct {
+	ClientSubscription `bson:",inline" json:",inline"`
+	Client             Client `bson:"client" json:"client"`
+}

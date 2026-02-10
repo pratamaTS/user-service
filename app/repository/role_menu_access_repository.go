@@ -114,7 +114,7 @@ func (u *RoleMenuAccessRepositoryImpl) GetMenusByRole(ctx context.Context, roleU
 			"uuid": bson.M{"$in": menuUUIDs},
 		}}},
 		{{Key: "$lookup", Value: bson.M{
-			"from":         "cl_parent_menus",
+			"from":         "parent_menus",
 			"localField":   "parent_uuid",
 			"foreignField": "uuid",
 			"as":           "parent",

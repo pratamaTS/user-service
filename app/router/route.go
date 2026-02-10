@@ -46,7 +46,7 @@ func Init(init *config.Initialization) *gin.Engine {
 
 	company := router.Group("/company")
 	{
-		company.GET("/", init.CompanyCtrl.List)
+		company.POST("/fetch", init.CompanyCtrl.List)
 		company.GET("/:uuid", init.CompanyCtrl.Detail)
 		company.POST("/", init.CompanyCtrl.Upsert)
 		company.DELETE("/:uuid", init.CompanyCtrl.Delete)
@@ -54,7 +54,7 @@ func Init(init *config.Initialization) *gin.Engine {
 
 	client := router.Group("/client", middleware.JWTAuthMiddleware())
 	{
-		client.GET("/", init.ClientCtrl.List)
+		client.POST("/fetch", init.ClientCtrl.List)
 		client.GET("/:uuid", init.ClientCtrl.Detail)
 		client.POST("/", init.ClientCtrl.Upsert)
 		client.DELETE("/:uuid", init.ClientCtrl.Delete)
@@ -98,7 +98,8 @@ func Init(init *config.Initialization) *gin.Engine {
 		subscription.GET("/:uuid", init.SubscriptionCtrl.Detail)
 		subscription.POST("/list", init.SubscriptionCtrl.List)
 		subscription.DELETE("/:uuid", init.SubscriptionCtrl.Delete)
-		subscription.POST("/activate-from-master", init.SubscriptionCtrl.ActivateFromMaster)
+		subscription.POST("/activate", init.SubscriptionCtrl.ActivateFromMaster)
+		subscription.POST("/client-active", init.SubscriptionCtrl.GetClientActiveSubscription)
 	}
 
 	files := router.Group("/files", middleware.JWTAuthMiddleware())

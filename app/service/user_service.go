@@ -11,23 +11,23 @@ import (
 	"harjonan.id/user-service/app/repository"
 )
 
-type RoleService interface {
+type UserService interface {
 	Upsert(ctx *gin.Context)
 	Detail(ctx *gin.Context)
 	List(ctx *gin.Context)
 	Delete(ctx *gin.Context)
 }
 
-type RoleServiceImpl struct {
-	repo repository.RoleRepository
+type UserServiceImpl struct {
+	repo repository.UserRepository
 }
 
-func NewRoleService(repo repository.RoleRepository) *RoleServiceImpl {
-	return &RoleServiceImpl{repo: repo}
+func NewUserService(repo repository.UserRepository) *UserServiceImpl {
+	return &UserServiceImpl{repo: repo}
 }
 
-func (s *RoleServiceImpl) Upsert(ctx *gin.Context) {
-	var req dao.Role
+func (s *UserServiceImpl) Upsert(ctx *gin.Context) {
+	var req dao.User
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		helpers.JsonErr[any](ctx, "invalid request", http.StatusBadRequest, err)
 		return
@@ -36,21 +36,21 @@ func (s *RoleServiceImpl) Upsert(ctx *gin.Context) {
 		helpers.JsonErr[any](ctx, "missing identifier", http.StatusBadRequest, errors.New("name required"))
 		return
 	}
-	res, err := s.repo.SaveRole(&req)
+	res, err := s.repo.SaveUser(&req)
 	if err != nil {
-		helpers.JsonErr[any](ctx, "failed to save role", http.StatusInternalServerError, err)
+		helpers.JsonErr[any](ctx, "failed to save user", http.StatusInternalServerError, err)
 		return
 	}
 	helpers.JsonOK(ctx, "success", res)
 }
 
-func (s *RoleServiceImpl) Detail(ctx *gin.Context) {
+func (s *UserServiceImpl) Detail(ctx *gin.Context) {
 	uuid := ctx.Param("uuid")
 	if uuid == "" {
 		helpers.JsonErr[any](ctx, "missing uuid", http.StatusBadRequest, errors.New("uuid required"))
 		return
 	}
-	data, err := s.repo.DetailRole(uuid)
+	data, err := s.repo.DetailUser(uuid)
 	if err != nil {
 		helpers.JsonErr[any](ctx, "not found", http.StatusNotFound, err)
 		return
@@ -58,28 +58,28 @@ func (s *RoleServiceImpl) Detail(ctx *gin.Context) {
 	helpers.JsonOK(ctx, "success", data)
 }
 
-func (s *RoleServiceImpl) List(ctx *gin.Context) {
+func (s *UserServiceImpl) List(ctx *gin.Context) {
 	var req dto.FilterRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		helpers.JsonErr[any](ctx, "invalid request", http.StatusBadRequest, err)
 		return
 	}
-	data, err := s.repo.ListRole(&req)
+	data, err := s.repo.ListUser(&req)
 	if err != nil {
-		helpers.JsonErr[any](ctx, "failed to list role", http.StatusInternalServerError, err)
+		helpers.JsonErr[any](ctx, "failed to list user", http.StatusInternalServerError, err)
 		return
 	}
 	helpers.JsonOK(ctx, "success", data)
 }
 
-func (s *RoleServiceImpl) Delete(ctx *gin.Context) {
+func (s *UserServiceImpl) Delete(ctx *gin.Context) {
 	uuid := ctx.Param("uuid")
 	if uuid == "" {
 		helpers.JsonErr[any](ctx, "missing uuid", http.StatusBadRequest, errors.New("uuid required"))
 		return
 	}
-	if err := s.repo.DeleteRole(uuid); err != nil {
-		helpers.JsonErr[any](ctx, "failed to delete role", http.StatusInternalServerError, err)
+	if err := s.repo.DeleteUser(uuid); err != nil {
+		helpers.JsonErr[any](ctx, "failed to delete user", http.StatusInternalServerError, err)
 		return
 	}
 	helpers.JsonOK[struct{}](ctx, "success", struct{}{})

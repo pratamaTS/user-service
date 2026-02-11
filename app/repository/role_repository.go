@@ -19,7 +19,7 @@ type RoleRepository interface {
 	SaveRole(data *dao.Role) (dao.Role, error)
 	DetailRole(uuid string) (dao.Role, error)
 	GetRoleByValue(value, subject string) (dao.Role, error)
-	ListRole(req *dto.APIRequest[dto.FilterRequest]) ([]dao.Role, error)
+	ListRole(req *dto.FilterRequest) ([]dao.Role, error)
 	DeleteRole(uuid string) error
 }
 
@@ -102,7 +102,7 @@ func (u *RoleRepositoryImpl) GetRoleByValue(value, subject string) (dao.Role, er
 	return result, err
 }
 
-func (u *RoleRepositoryImpl) ListRole(req *dto.APIRequest[dto.FilterRequest]) ([]dao.Role, error) {
+func (u *RoleRepositoryImpl) ListRole(req *dto.FilterRequest) ([]dao.Role, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -114,7 +114,7 @@ func (u *RoleRepositoryImpl) ListRole(req *dto.APIRequest[dto.FilterRequest]) ([
 			{"is_use_by": bson.M{"$regex": req.Search, "$options": "i"}},
 		}
 	}
-	for key, val := range req.FilterBy.FilterBy {
+	for key, val := range req.FilterBy {
 		if key == "" || val == nil {
 			continue
 		}
@@ -122,7 +122,7 @@ func (u *RoleRepositoryImpl) ListRole(req *dto.APIRequest[dto.FilterRequest]) ([
 	}
 
 	sort := bson.D{}
-	for key, val := range req.SortBy.SortBy {
+	for key, val := range req.SortBy {
 		switch v := val.(type) {
 		case string:
 			if v == "asc" || v == "ASC" || v == "1" {
@@ -144,8 +144,8 @@ func (u *RoleRepositoryImpl) ListRole(req *dto.APIRequest[dto.FilterRequest]) ([
 		sort = bson.D{{Key: "created_at", Value: -1}}
 	}
 
-	page := req.Pagination.Pagination.Page
-	size := req.Pagination.Pagination.PageSize
+	page := req.Pagination.Page
+	size := req.Pagination.PageSize
 	if page <= 0 {
 		page = 1
 	}

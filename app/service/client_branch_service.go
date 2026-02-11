@@ -11,23 +11,23 @@ import (
 	"harjonan.id/user-service/app/repository"
 )
 
-type RoleService interface {
+type ClientBranchService interface {
 	Upsert(ctx *gin.Context)
 	Detail(ctx *gin.Context)
 	List(ctx *gin.Context)
 	Delete(ctx *gin.Context)
 }
 
-type RoleServiceImpl struct {
-	repo repository.RoleRepository
+type ClientBranchServiceImpl struct {
+	repo repository.ClientBranchRepository
 }
 
-func NewRoleService(repo repository.RoleRepository) *RoleServiceImpl {
-	return &RoleServiceImpl{repo: repo}
+func NewClientBranchService(repo repository.ClientBranchRepository) *ClientBranchServiceImpl {
+	return &ClientBranchServiceImpl{repo: repo}
 }
 
-func (s *RoleServiceImpl) Upsert(ctx *gin.Context) {
-	var req dao.Role
+func (s *ClientBranchServiceImpl) Upsert(ctx *gin.Context) {
+	var req dao.ClientBranch
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		helpers.JsonErr[any](ctx, "invalid request", http.StatusBadRequest, err)
 		return
@@ -36,21 +36,21 @@ func (s *RoleServiceImpl) Upsert(ctx *gin.Context) {
 		helpers.JsonErr[any](ctx, "missing identifier", http.StatusBadRequest, errors.New("name required"))
 		return
 	}
-	res, err := s.repo.SaveRole(&req)
+	res, err := s.repo.SaveClientBranch(&req)
 	if err != nil {
-		helpers.JsonErr[any](ctx, "failed to save role", http.StatusInternalServerError, err)
+		helpers.JsonErr[any](ctx, "failed to save client branch", http.StatusInternalServerError, err)
 		return
 	}
 	helpers.JsonOK(ctx, "success", res)
 }
 
-func (s *RoleServiceImpl) Detail(ctx *gin.Context) {
+func (s *ClientBranchServiceImpl) Detail(ctx *gin.Context) {
 	uuid := ctx.Param("uuid")
 	if uuid == "" {
 		helpers.JsonErr[any](ctx, "missing uuid", http.StatusBadRequest, errors.New("uuid required"))
 		return
 	}
-	data, err := s.repo.DetailRole(uuid)
+	data, err := s.repo.DetailClientBranch(uuid)
 	if err != nil {
 		helpers.JsonErr[any](ctx, "not found", http.StatusNotFound, err)
 		return
@@ -58,28 +58,28 @@ func (s *RoleServiceImpl) Detail(ctx *gin.Context) {
 	helpers.JsonOK(ctx, "success", data)
 }
 
-func (s *RoleServiceImpl) List(ctx *gin.Context) {
-	var req dto.FilterRequest
+func (s *ClientBranchServiceImpl) List(ctx *gin.Context) {
+	var req dto.APIRequest[dto.FilterRequest]
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		helpers.JsonErr[any](ctx, "invalid request", http.StatusBadRequest, err)
 		return
 	}
-	data, err := s.repo.ListRole(&req)
+	data, err := s.repo.ListClientBranch(&req)
 	if err != nil {
-		helpers.JsonErr[any](ctx, "failed to list role", http.StatusInternalServerError, err)
+		helpers.JsonErr[any](ctx, "failed to list client branch", http.StatusInternalServerError, err)
 		return
 	}
 	helpers.JsonOK(ctx, "success", data)
 }
 
-func (s *RoleServiceImpl) Delete(ctx *gin.Context) {
+func (s *ClientBranchServiceImpl) Delete(ctx *gin.Context) {
 	uuid := ctx.Param("uuid")
 	if uuid == "" {
 		helpers.JsonErr[any](ctx, "missing uuid", http.StatusBadRequest, errors.New("uuid required"))
 		return
 	}
-	if err := s.repo.DeleteRole(uuid); err != nil {
-		helpers.JsonErr[any](ctx, "failed to delete role", http.StatusInternalServerError, err)
+	if err := s.repo.DeleteClientBranch(uuid); err != nil {
+		helpers.JsonErr[any](ctx, "failed to delete client branch", http.StatusInternalServerError, err)
 		return
 	}
 	helpers.JsonOK[struct{}](ctx, "success", struct{}{})

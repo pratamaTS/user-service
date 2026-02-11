@@ -17,7 +17,7 @@ import (
 type MenuRepository interface {
 	SaveMenu(data *dao.Menu) (dao.Menu, error)
 	DetailMenu(uuid string) (dao.Menu, error)
-	ListMenu(req *dto.APIRequest[dto.FilterRequest]) ([]dao.Menu, error)
+	ListMenu(req *dto.FilterRequest) ([]dao.Menu, error)
 	DeleteMenu(uuid string) error
 }
 
@@ -99,7 +99,7 @@ func (u *MenuRepositoryImpl) DetailMenu(uuid string) (dao.Menu, error) {
 	return result, err
 }
 
-func (u *MenuRepositoryImpl) ListMenu(req *dto.APIRequest[dto.FilterRequest]) ([]dao.Menu, error) {
+func (u *MenuRepositoryImpl) ListMenu(req *dto.FilterRequest) ([]dao.Menu, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -112,7 +112,7 @@ func (u *MenuRepositoryImpl) ListMenu(req *dto.APIRequest[dto.FilterRequest]) ([
 			{"owner": bson.M{"$regex": req.Search, "$options": "i"}},
 		}
 	}
-	for key, val := range req.FilterBy.FilterBy {
+	for key, val := range req.FilterBy {
 		if key == "" || val == nil {
 			continue
 		}
@@ -120,7 +120,7 @@ func (u *MenuRepositoryImpl) ListMenu(req *dto.APIRequest[dto.FilterRequest]) ([
 	}
 
 	sort := bson.D{}
-	for key, val := range req.SortBy.SortBy {
+	for key, val := range req.SortBy {
 		switch v := val.(type) {
 		case string:
 			if v == "asc" || v == "ASC" || v == "1" {
@@ -142,8 +142,8 @@ func (u *MenuRepositoryImpl) ListMenu(req *dto.APIRequest[dto.FilterRequest]) ([
 		sort = bson.D{{Key: "sort", Value: 1}}
 	}
 
-	page := req.Pagination.Pagination.Page
-	size := req.Pagination.Pagination.PageSize
+	page := req.Pagination.Page
+	size := req.Pagination.PageSize
 	if page <= 0 {
 		page = 1
 	}

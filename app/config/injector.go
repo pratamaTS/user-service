@@ -33,6 +33,8 @@ var repoSet = wire.NewSet(
 	repository.ClientSubscriptionRepositoryInit, wire.Bind(new(repository.ClientSubscriptionRepository), new(*repository.ClientSubscriptionRepositoryImpl)),
 	repository.SubscriptionRepositoryInit, wire.Bind(new(repository.SubscriptionRepository), new(*repository.SubscriptionRepositoryImpl)),
 	repository.ImageRepositoryInit, wire.Bind(new(repository.ImageRepository), new(*repository.ImageRepositoryImpl)),
+	repository.ClientBranchRepositoryInit, wire.Bind(new(repository.ClientBranchRepository), new(*repository.ClientBranchRepositoryImpl)),
+	repository.UserRepositoryInit, wire.Bind(new(repository.UserRepository), new(*repository.UserRepositoryImpl)),
 )
 
 var serviceSet = wire.NewSet(
@@ -47,6 +49,9 @@ var serviceSet = wire.NewSet(
 	service.NewSubscriptionService, wire.Bind(new(service.SubscriptionService), new(*service.SubscriptionServiceImpl)),
 	service.NewSubscriptionGuardService, wire.Bind(new(service.SubscriptionGuardService), new(*service.SubscriptionGuardServiceImpl)),
 	service.NewFileService, wire.Bind(new(service.FileService), new(*service.FileServiceImpl)),
+	service.NewClientBranchService, wire.Bind(new(service.ClientBranchService), new(*service.ClientBranchServiceImpl)),
+	service.NewUserService, wire.Bind(new(service.UserService), new(*service.UserServiceImpl)),
+	service.NewClientUserService, wire.Bind(new(service.ClientUserService), new(*service.ClientUserServiceImpl)),
 )
 
 var controllerSet = wire.NewSet(
@@ -60,6 +65,9 @@ var controllerSet = wire.NewSet(
 	controller.AuthControllerInit, wire.Bind(new(controller.AuthController), new(*controller.AuthControllerImpl)),
 	controller.SubscriptionControllerInit, wire.Bind(new(controller.SubscriptionController), new(*controller.SubscriptionControllerImpl)),
 	controller.FileControllerInit, wire.Bind(new(controller.FileController), new(*controller.FileControllerImpl)),
+	controller.ClientBranchControllerInit, wire.Bind(new(controller.ClientBranchController), new(*controller.ClientBranchControllerImpl)),
+	controller.UserControllerInit, wire.Bind(new(controller.UserController), new(*controller.UserControllerImpl)),
+	controller.ClientUserControllerInit, wire.Bind(new(controller.ClientUserController), new(*controller.ClientUserControllerImpl)),
 )
 
 func Init() *Initialization {

@@ -22,6 +22,8 @@ type Initialization struct {
 	ClientSubscriptionRepo repository.ClientSubscriptionRepository
 	SubscriptionRepo       repository.SubscriptionRepository
 	FileRepo               repository.ImageRepository
+	ClientBranchRepo       repository.ClientBranchRepository
+	UserRepo               repository.UserRepository
 
 	AdminSvc          service.AdminService
 	ClientSvc         service.ClientService
@@ -33,6 +35,9 @@ type Initialization struct {
 	AuthSvc           service.AuthService
 	SubscriptionSvc   service.SubscriptionService
 	FileSvc           service.FileService
+	ClientBranchSvc   service.ClientBranchService
+	UserSvc           service.UserService
+	ClientUserSvc     service.ClientUserService
 
 	AdminCtrl          controller.AdminController
 	ClientCtrl         controller.ClientController
@@ -44,6 +49,9 @@ type Initialization struct {
 	AuthCtrl           controller.AuthController
 	SubscriptionCtrl   controller.SubscriptionController
 	FileCtrl           controller.FileController
+	ClientBranchCtrl   controller.ClientBranchController
+	UserCtrl           controller.UserController
+	ClientUserCtrl     controller.ClientUserController
 }
 
 func NewInitialization(
@@ -61,6 +69,8 @@ func NewInitialization(
 	clientSubscriptionRepo repository.ClientSubscriptionRepository,
 	subscriptionRepo repository.SubscriptionRepository,
 	fileRepo repository.ImageRepository,
+	clientBranchRepo repository.ClientBranchRepository,
+	userRepo repository.UserRepository,
 
 	adminSvc service.AdminService,
 	clientSvc service.ClientService,
@@ -72,6 +82,9 @@ func NewInitialization(
 	authSvc service.AuthService,
 	subscriptionSvc service.SubscriptionService,
 	fileSvc service.FileService,
+	clientBranchSvc service.ClientBranchService,
+	userSvc service.UserService,
+	clientUserSvc service.ClientUserService,
 
 	adminCtrl controller.AdminController,
 	clientCtrl controller.ClientController,
@@ -83,6 +96,9 @@ func NewInitialization(
 	authCtrl controller.AuthController,
 	subscriptionCtrl controller.SubscriptionController,
 	fileCtrl controller.FileController,
+	clientBranchCtrl controller.ClientBranchController,
+	userCtrl controller.UserController,
+	clientUserCtrl controller.ClientUserController,
 ) *Initialization {
 	return &Initialization{
 		AdminRepo:              adminRepo,
@@ -99,6 +115,8 @@ func NewInitialization(
 		ClientSubscriptionRepo: clientSubscriptionRepo,
 		SubscriptionRepo:       subscriptionRepo,
 		FileRepo:               fileRepo,
+		ClientBranchRepo:       clientBranchRepo,
+		UserRepo:               userRepo,
 
 		AdminSvc:          adminSvc,
 		ClientSvc:         clientSvc,
@@ -110,6 +128,9 @@ func NewInitialization(
 		AuthSvc:           authSvc,
 		SubscriptionSvc:   subscriptionSvc,
 		FileSvc:           fileSvc,
+		ClientBranchSvc:   clientBranchSvc,
+		UserSvc:           userSvc,
+		ClientUserSvc:     clientUserSvc,
 
 		AdminCtrl:          adminCtrl,
 		ClientCtrl:         clientCtrl,
@@ -121,5 +142,8 @@ func NewInitialization(
 		AuthCtrl:           authCtrl,
 		SubscriptionCtrl:   subscriptionCtrl,
 		FileCtrl:           fileCtrl,
+		ClientBranchCtrl:   clientBranchCtrl,
+		UserCtrl:           userCtrl,
+		ClientUserCtrl:     clientUserCtrl,
 	}
 }

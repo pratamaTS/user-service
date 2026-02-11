@@ -67,7 +67,7 @@ func (s *MenuServiceImpl) Detail(ctx *gin.Context) {
 }
 
 func (s *MenuServiceImpl) List(ctx *gin.Context) {
-	var req dto.APIRequest[dto.FilterRequest]
+	var req dto.FilterRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		helpers.JsonErr[any](ctx, "invalid request", http.StatusBadRequest, err)
 		return

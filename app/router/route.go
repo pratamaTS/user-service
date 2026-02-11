@@ -62,7 +62,7 @@ func Init(init *config.Initialization) *gin.Engine {
 
 	parentMenu := router.Group("/parent-menu", middleware.JWTAuthMiddleware())
 	{
-		parentMenu.GET("/", init.ParentMenuCtrl.List)
+		parentMenu.POST("/fetch", init.ParentMenuCtrl.List)
 		parentMenu.GET("/:uuid", init.ParentMenuCtrl.Detail)
 		parentMenu.POST("/", init.ParentMenuCtrl.Upsert)
 		parentMenu.DELETE("/:uuid", init.ParentMenuCtrl.Delete)
@@ -70,7 +70,7 @@ func Init(init *config.Initialization) *gin.Engine {
 
 	menu := router.Group("/menu", middleware.JWTAuthMiddleware())
 	{
-		menu.GET("/", init.MenuCtrl.List)
+		menu.POST("/fetch", init.MenuCtrl.List)
 		menu.GET("/:uuid", init.MenuCtrl.Detail)
 		menu.POST("/", init.MenuCtrl.Upsert)
 		menu.DELETE("/:uuid", init.MenuCtrl.Delete)
@@ -86,7 +86,7 @@ func Init(init *config.Initialization) *gin.Engine {
 
 	role := router.Group("/role")
 	{
-		role.GET("/", init.RoleCtrl.List)
+		role.POST("/fetch", init.RoleCtrl.List)
 		role.GET("/:uuid", init.RoleCtrl.Detail)
 		role.POST("/", init.RoleCtrl.Upsert)
 		role.DELETE("/:uuid", init.RoleCtrl.Delete)
@@ -106,6 +106,30 @@ func Init(init *config.Initialization) *gin.Engine {
 	{
 		files.POST("/upload", init.FileCtrl.Upload)
 		files.GET("/*key", init.FileCtrl.Get) // pakai wildcard biar key bisa ada slash
+	}
+
+	clientBranch := router.Group("/client-branches", middleware.JWTAuthMiddleware())
+	{
+		clientBranch.POST("/fetch", init.ClientBranchCtrl.List)
+		clientBranch.GET("/:uuid", init.ClientBranchCtrl.Detail)
+		clientBranch.POST("/upsert", init.ClientBranchCtrl.Upsert)
+		clientBranch.DELETE("/:uuid", init.ClientBranchCtrl.Delete)
+	}
+
+	user := router.Group("/users", middleware.JWTAuthMiddleware())
+	{
+		user.POST("/fetch", init.UserCtrl.List)
+		user.GET("/:uuid", init.UserCtrl.Detail)
+		user.POST("/upsert", init.UserCtrl.Upsert)
+		user.DELETE("/:uuid", init.UserCtrl.Delete)
+	}
+
+	clientUser := router.Group("/client-users", middleware.JWTAuthMiddleware())
+	{
+		clientUser.POST("/fetch", init.ClientUserCtrl.List)
+		clientUser.GET("/:uuid", init.ClientUserCtrl.Detail)
+		clientUser.POST("/upsert", init.ClientUserCtrl.Upsert)
+		clientUser.DELETE("/:uuid", init.ClientUserCtrl.Delete)
 	}
 
 	return router

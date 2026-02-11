@@ -16,7 +16,7 @@ import (
 type UserRepository interface {
 	SaveUser(data *dao.User) (dao.User, error)
 	DetailUser(uuid string) (dao.User, error)
-	ListUser(req *dto.APIRequest[dto.FilterRequest]) ([]dao.User, error)
+	ListUser(req *dto.FilterRequest) ([]dao.User, error)
 	DeleteUser(uuid string) error
 }
 
@@ -43,6 +43,7 @@ func (u *UserRepositoryImpl) SaveUser(data *dao.User) (dao.User, error) {
 
 	data.UpdatedAt = now.Unix()
 	data.UpdatedAtStr = nowStr
+	data.UUID = helpers.GenerateUUID()
 
 	update := bson.M{
 		"$set": bson.M{
@@ -95,7 +96,7 @@ func (u *UserRepositoryImpl) DetailUser(uuid string) (dao.User, error) {
 	return result, err
 }
 
-func (u *UserRepositoryImpl) ListUser(req *dto.APIRequest[dto.FilterRequest]) ([]dao.User, error) {
+func (u *UserRepositoryImpl) ListUser(req *dto.FilterRequest) ([]dao.User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -109,7 +110,7 @@ func (u *UserRepositoryImpl) ListUser(req *dto.APIRequest[dto.FilterRequest]) ([
 		}
 	}
 
-	for key, val := range req.FilterBy.FilterBy {
+	for key, val := range req.FilterBy {
 		if key == "" || val == nil {
 			continue
 		}
@@ -117,7 +118,7 @@ func (u *UserRepositoryImpl) ListUser(req *dto.APIRequest[dto.FilterRequest]) ([
 	}
 
 	sort := bson.D{}
-	for key, val := range req.SortBy.SortBy {
+	for key, val := range req.SortBy {
 		switch v := val.(type) {
 		case string:
 			if v == "asc" || v == "ASC" || v == "1" {
@@ -139,8 +140,8 @@ func (u *UserRepositoryImpl) ListUser(req *dto.APIRequest[dto.FilterRequest]) ([
 		sort = bson.D{{Key: "created_at", Value: -1}}
 	}
 
-	page := req.Pagination.Pagination.Page
-	size := req.Pagination.Pagination.PageSize
+	page := req.Pagination.Page
+	size := req.Pagination.PageSize
 	if page <= 0 {
 		page = 1
 	}

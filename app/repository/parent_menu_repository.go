@@ -17,7 +17,7 @@ import (
 type ParentMenuRepository interface {
 	SaveParentMenu(data *dao.ParentMenu) (dao.ParentMenu, error)
 	DetailParentMenu(uuid string) (dao.ParentMenu, error)
-	ListParentMenu(req *dto.APIRequest[dto.FilterRequest]) ([]dao.ParentMenu, error)
+	ListParentMenu(req *dto.FilterRequest) ([]dao.ParentMenu, error)
 	DeleteParentMenu(uuid string) error
 }
 
@@ -95,7 +95,7 @@ func (u *ParentMenuRepositoryImpl) DetailParentMenu(uuid string) (dao.ParentMenu
 	return result, err
 }
 
-func (u *ParentMenuRepositoryImpl) ListParentMenu(req *dto.APIRequest[dto.FilterRequest]) ([]dao.ParentMenu, error) {
+func (u *ParentMenuRepositoryImpl) ListParentMenu(req *dto.FilterRequest) ([]dao.ParentMenu, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -106,7 +106,7 @@ func (u *ParentMenuRepositoryImpl) ListParentMenu(req *dto.APIRequest[dto.Filter
 			{"description": bson.M{"$regex": req.Search, "$options": "i"}},
 		}
 	}
-	for key, val := range req.FilterBy.FilterBy {
+	for key, val := range req.FilterBy {
 		if key == "" || val == nil {
 			continue
 		}
@@ -114,7 +114,7 @@ func (u *ParentMenuRepositoryImpl) ListParentMenu(req *dto.APIRequest[dto.Filter
 	}
 
 	sort := bson.D{}
-	for key, val := range req.SortBy.SortBy {
+	for key, val := range req.SortBy {
 		switch v := val.(type) {
 		case string:
 			if v == "asc" || v == "ASC" || v == "1" {
@@ -136,8 +136,8 @@ func (u *ParentMenuRepositoryImpl) ListParentMenu(req *dto.APIRequest[dto.Filter
 		sort = bson.D{{Key: "sort", Value: 1}} // Default: order by sort ascending
 	}
 
-	page := req.Pagination.Pagination.Page
-	size := req.Pagination.Pagination.PageSize
+	page := req.Pagination.Page
+	size := req.Pagination.PageSize
 	if page <= 0 {
 		page = 1
 	}

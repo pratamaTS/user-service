@@ -78,7 +78,7 @@ func Init(init *config.Initialization) *gin.Engine {
 
 	accessMenu := router.Group("/role-menu-access", middleware.JWTAuthMiddleware())
 	{
-		accessMenu.GET("/", init.RoleAccessMenuCtrl.List)
+		accessMenu.POST("/fetch", init.RoleAccessMenuCtrl.List)
 		accessMenu.GET("/:uuid", init.RoleAccessMenuCtrl.Detail)
 		accessMenu.POST("/", init.RoleAccessMenuCtrl.Upsert)
 		accessMenu.DELETE("/:uuid", init.RoleAccessMenuCtrl.Delete)

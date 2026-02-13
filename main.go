@@ -50,15 +50,15 @@ func getGitBranch() string {
 
 func getEnvFileFromBranch(branch string) string {
 	switch {
-	case branch == "main-aws-stable":
+	case branch == "master" || branch == "main":
 		log.Print("Env prod")
-		return "app/config/.env.prod"
+		return "app/config/.env.production"
 	case strings.HasPrefix(branch, "staging"):
 		log.Print("Env Staging")
 		return "app/config/.env.staging"
-	case strings.HasPrefix(branch, "dev"):
+	case strings.HasPrefix(branch, "development"):
 		log.Print("Env Dev")
-		return "app/config/.env.dev"
+		return "app/config/.env.development"
 	default:
 		log.Print("Env local")
 		return "app/config/.env.local"

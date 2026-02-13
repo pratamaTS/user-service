@@ -35,9 +35,7 @@ func (u *ClientBranchRepositoryImpl) SaveClientBranch(data *dao.ClientBranch) (d
 		filter["uuid"] = data.UUID
 	case data.ClientUUID != "" && data.Name != "":
 		filter["client_uuid"] = data.ClientUUID
-		filter["$or"] = []bson.M{
-			{"name": data.Name},
-		}
+		filter["name"] = data.Name
 	default:
 		return dao.ClientBranch{}, errors.New("upsert requires uuid, id, or (client_uuid + name)")
 	}
@@ -51,7 +49,6 @@ func (u *ClientBranchRepositoryImpl) SaveClientBranch(data *dao.ClientBranch) (d
 
 	update := bson.M{
 		"$set": bson.M{
-			"uuid":           data.UUID,
 			"client_uuid":    data.ClientUUID,
 			"name":           data.Name,
 			"address":        data.Address,

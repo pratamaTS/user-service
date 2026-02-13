@@ -18,7 +18,7 @@ RUN ls -la .env*
 RUN go build -o main .
 
 # Port from env file will be read by the Go app
-EXPOSE 47001
+EXPOSE 10100
 
 # Run the app
 CMD ["./main"]

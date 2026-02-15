@@ -35,6 +35,8 @@ func (u *MenuRepositoryImpl) SaveMenu(data *dao.Menu) (dao.Menu, error) {
 		filter["uuid"] = data.UUID
 	case data.Title != "":
 		filter["title"] = data.Title
+	case data.Owner != "":
+		filter["owner"] = data.Owner
 	default:
 		return dao.Menu{}, errors.New("upsert requires one of uuid/id/title")
 	}

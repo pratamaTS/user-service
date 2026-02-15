@@ -145,8 +145,8 @@ func Init(init *config.Initialization) *gin.Engine {
 	{
 		stock.POST("/fetch", init.StockTransferCtrl.List)
 		stock.GET("/:uuid", init.StockTransferCtrl.Detail)
-		stock.POST("/request", init.StockTransferCtrl.Request)       // create => IN_PROGRESS
-		stock.POST("/:uuid/receive", init.StockTransferCtrl.Receive) // accept => DONE + mutate stock
+		stock.POST("/request", init.StockTransferCtrl.Request)
+		stock.POST("/:uuid/receive", init.StockTransferCtrl.Receive)
 	}
 
 	return router

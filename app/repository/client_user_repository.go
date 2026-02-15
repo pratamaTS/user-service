@@ -17,7 +17,7 @@ import (
 type ClientUserRepository interface {
 	SaveClientUser(data *dao.ClientUser) (dao.ClientUser, error)
 	DetailClientUser(uuid string) (dao.ClientUser, error)
-	ListClientUser(req *dto.FilterRequest) ([]dao.ClientUser, error)
+	ListClientUser(req *dto.FilterRequest) ([]dao.ClientUserWithDetail, error)
 	DeleteClientUser(uuid string) error
 }
 
@@ -96,10 +96,13 @@ func (u *ClientUserRepositoryImpl) DetailClientUser(uuid string) (dao.ClientUser
 	return result, err
 }
 
-func (u *ClientUserRepositoryImpl) ListClientUser(req *dto.FilterRequest) ([]dao.ClientUser, error) {
+func (u *ClientUserRepositoryImpl) ListClientUser(req *dto.FilterRequest) ([]dao.ClientUserWithDetail, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// =========================
+	// 1) FILTER (SAMA PERSIS)
+	// =========================
 	filter := bson.M{}
 	if req.Search != "" {
 		filter["$or"] = []bson.M{
@@ -115,6 +118,9 @@ func (u *ClientUserRepositoryImpl) ListClientUser(req *dto.FilterRequest) ([]dao
 		filter[k] = v
 	}
 
+	// =========================
+	// 2) SORT (SAMA PERSIS)
+	// =========================
 	sort := bson.D{}
 	for k, v := range req.SortBy {
 		switch tv := v.(type) {
@@ -138,6 +144,9 @@ func (u *ClientUserRepositoryImpl) ListClientUser(req *dto.FilterRequest) ([]dao
 		sort = bson.D{{Key: "created_at", Value: -1}}
 	}
 
+	// =========================
+	// 3) PAGINATION (SAMA PERSIS)
+	// =========================
 	page := req.Pagination.Page
 	size := req.Pagination.PageSize
 	if page <= 0 {
@@ -148,15 +157,68 @@ func (u *ClientUserRepositoryImpl) ListClientUser(req *dto.FilterRequest) ([]dao
 	}
 	skip := int64((page - 1) * size)
 
-	opts := options.Find().SetSort(sort).SetSkip(skip).SetLimit(int64(size))
+	// =========================
+	// 4) LOOKUP PIPELINE
+	// =========================
+	pipeline := mongo.Pipeline{
+		// match filter
+		bson.D{{Key: "$match", Value: filter}},
 
-	cur, err := u.clientUserCollection.Find(ctx, filter, opts)
+		// client lookup
+		bson.D{{Key: "$lookup", Value: bson.M{
+			"from":         "clients",
+			"localField":   "client_uuid",
+			"foreignField": "uuid",
+			"as":           "client",
+		}}},
+
+		// branch lookup (owner branch_uuid kosong -> aman, hasil [])
+		bson.D{{Key: "$lookup", Value: bson.M{
+			"from":         "client_branches",
+			"localField":   "branch_uuid",
+			"foreignField": "uuid",
+			"as":           "branch",
+		}}},
+
+		// role lookup
+		bson.D{{Key: "$lookup", Value: bson.M{
+			"from":         "roles",
+			"localField":   "role_uuid",
+			"foreignField": "uuid",
+			"as":           "role",
+		}}},
+
+		// user lookup
+		bson.D{{Key: "$lookup", Value: bson.M{
+			"from":         "users",
+			"localField":   "user_uuid",
+			"foreignField": "uuid",
+			"as":           "user",
+		}}},
+
+		// flatten array->object (ambil elem pertama)
+		bson.D{{Key: "$addFields", Value: bson.M{
+			"client": bson.M{"$arrayElemAt": bson.A{"$client", 0}},
+			"branch": bson.M{"$arrayElemAt": bson.A{"$branch", 0}},
+			"role":   bson.M{"$arrayElemAt": bson.A{"$role", 0}},
+			"user":   bson.M{"$arrayElemAt": bson.A{"$user", 0}},
+		}}},
+
+		// sort + pagination
+		bson.D{{Key: "$sort", Value: sort}},
+		bson.D{{Key: "$skip", Value: skip}},
+		bson.D{{Key: "$limit", Value: int64(size)}},
+	}
+
+	opts := options.Aggregate().SetAllowDiskUse(true)
+
+	cur, err := u.clientUserCollection.Aggregate(ctx, pipeline, opts)
 	if err != nil {
 		return nil, err
 	}
 	defer cur.Close(ctx)
 
-	var list []dao.ClientUser
+	var list []dao.ClientUserWithDetail
 	if err := cur.All(ctx, &list); err != nil {
 		return nil, err
 	}

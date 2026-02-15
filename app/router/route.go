@@ -132,5 +132,22 @@ func Init(init *config.Initialization) *gin.Engine {
 		clientUser.DELETE("/:uuid", init.ClientUserCtrl.Delete)
 	}
 
+	product := router.Group("/products", middleware.JWTAuthMiddleware())
+	{
+		product.POST("/fetch", init.ProductCtrl.List)
+		product.GET("/:uuid", init.ProductCtrl.Detail)
+		product.POST("/upsert", init.ProductCtrl.Upsert)
+		product.DELETE("/:uuid", init.ProductCtrl.Delete)
+		product.POST("/bulk-upload", init.ProductCtrl.BulkUpload)
+	}
+
+	stock := router.Group("/stock-transfers", middleware.JWTAuthMiddleware())
+	{
+		stock.POST("/fetch", init.StockTransferCtrl.List)
+		stock.GET("/:uuid", init.StockTransferCtrl.Detail)
+		stock.POST("/request", init.StockTransferCtrl.Request)       // create => IN_PROGRESS
+		stock.POST("/:uuid/receive", init.StockTransferCtrl.Receive) // accept => DONE + mutate stock
+	}
+
 	return router
 }

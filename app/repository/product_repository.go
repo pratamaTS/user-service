@@ -18,7 +18,7 @@ type ProductRepository interface {
 	SaveProduct(data *dao.Product) (dao.Product, error)
 	BulkUpsertProducts(list []dao.Product) (int, int, []error)
 	DetailProduct(uuid string) (dao.Product, error)
-	ListProduct(req *dto.APIRequest[dto.FilterRequest]) ([]dao.Product, error)
+	ListProduct(req *dto.FilterRequest) ([]dao.Product, error)
 	DeleteProduct(uuid string) error
 }
 
@@ -79,6 +79,7 @@ func (r *ProductRepositoryImpl) SaveProduct(data *dao.Product) (dao.Product, err
 			"base_unit":      data.BaseUnit,
 			"units":          data.Units,
 			"cost":           data.Cost,
+			"stock":          data.Stock,
 			"price":          data.Price,
 			"is_active":      data.IsActive,
 			"created_by":     data.CreatedBy,
@@ -141,7 +142,7 @@ func (r *ProductRepositoryImpl) DetailProduct(uuid string) (dao.Product, error) 
 	return result, err
 }
 
-func (r *ProductRepositoryImpl) ListProduct(req *dto.APIRequest[dto.FilterRequest]) ([]dao.Product, error) {
+func (r *ProductRepositoryImpl) ListProduct(req *dto.FilterRequest) ([]dao.Product, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -155,7 +156,7 @@ func (r *ProductRepositoryImpl) ListProduct(req *dto.APIRequest[dto.FilterReques
 		}
 	}
 
-	for k, v := range req.FilterBy.FilterBy {
+	for k, v := range req.FilterBy {
 		if k == "" || v == nil {
 			continue
 		}
@@ -163,7 +164,7 @@ func (r *ProductRepositoryImpl) ListProduct(req *dto.APIRequest[dto.FilterReques
 	}
 
 	sort := bson.D{}
-	for k, v := range req.SortBy.SortBy {
+	for k, v := range req.SortBy {
 		switch tv := v.(type) {
 		case string:
 			if tv == "asc" || tv == "ASC" || tv == "1" {
@@ -185,8 +186,8 @@ func (r *ProductRepositoryImpl) ListProduct(req *dto.APIRequest[dto.FilterReques
 		sort = bson.D{{Key: "created_at", Value: -1}}
 	}
 
-	page := req.Pagination.Pagination.Page
-	size := req.Pagination.Pagination.PageSize
+	page := req.Pagination.Page
+	size := req.Pagination.PageSize
 	if page <= 0 {
 		page = 1
 	}

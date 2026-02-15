@@ -2,6 +2,8 @@ package repository
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"time"
 
@@ -41,6 +43,12 @@ func (u *UserRepositoryImpl) SaveUser(data *dao.User) (dao.User, error) {
 	now := time.Now()
 	nowStr := now.Format(time.RFC3339)
 
+	// hash password
+	hasher := sha256.New()
+	hasher.Write([]byte(data.Password))
+	hashedPass := hex.EncodeToString(hasher.Sum(nil))
+
+	data.Password = hashedPass
 	data.UpdatedAt = now.Unix()
 	data.UpdatedAtStr = nowStr
 	data.UUID = helpers.GenerateUUID()

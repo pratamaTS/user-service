@@ -145,8 +145,21 @@ func Init(init *config.Initialization) *gin.Engine {
 	{
 		stock.POST("/fetch", init.StockTransferCtrl.List)
 		stock.GET("/:uuid", init.StockTransferCtrl.Detail)
-		stock.POST("/request", init.StockTransferCtrl.Request)
-		stock.POST("/:uuid/receive", init.StockTransferCtrl.Receive)
+		stock.POST("/request", init.StockTransferCtrl.Create)
+		stock.POST("/:uuid/warehouse-approve", init.StockTransferCtrl.WarehouseApprove)
+		stock.POST("/:uuid/driver-accept", init.StockTransferCtrl.DriverAccept)
+		stock.POST("/:uuid/receive", init.StockTransferCtrl.ReceiveDone)
+	}
+
+	pos := router.Group("/pos/transactions", middleware.JWTAuthMiddleware())
+	{
+		pos.POST("/checkout", init.PosTransactionCtrl.Checkout)
+		pos.POST("/fetch", init.PosTransactionCtrl.List)
+		pos.GET("/:uuid", init.PosTransactionCtrl.Detail)
+		pos.POST("/:uuid/void", init.PosTransactionCtrl.Void)
+
+		// optional: barcode scan cepat
+		pos.POST("/scan", init.PosTransactionCtrl.ScanByBarcode)
 	}
 
 	return router

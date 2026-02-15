@@ -12,78 +12,59 @@ import (
 )
 
 type StockTransferService interface {
-	Request(ctx *gin.Context)
-	Receive(ctx *gin.Context)
+	Create(ctx *gin.Context)
 	Detail(ctx *gin.Context)
 	List(ctx *gin.Context)
+	WarehouseApprove(ctx *gin.Context)
+	DriverAccept(ctx *gin.Context)
+	ReceiveDone(ctx *gin.Context)
 }
 
 type StockTransferServiceImpl struct {
-	repo repository.StockTransferRepository
+	repo     repository.StockTransferRepository
+	authRepo repository.AuthRepository
 }
 
-func NewStockTransferService(repo repository.StockTransferRepository) *StockTransferServiceImpl {
-	return &StockTransferServiceImpl{repo: repo}
+func NewStockTransferService(repo repository.StockTransferRepository, authRepo repository.AuthRepository) *StockTransferServiceImpl {
+	return &StockTransferServiceImpl{repo: repo, authRepo: authRepo}
 }
 
-func (s *StockTransferServiceImpl) Request(ctx *gin.Context) {
-	var req dao.StockTransfer
+func (s *StockTransferServiceImpl) Create(ctx *gin.Context) {
+	var req dto.StockTransferCreateReq
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		helpers.JsonErr[any](ctx, "invalid request", http.StatusBadRequest, err)
 		return
 	}
-
-	if req.FromBranchUUID == "" || req.ToBranchUUID == "" {
-		helpers.JsonErr[any](ctx, "missing branch", http.StatusBadRequest, errors.New("from_branch_uuid and to_branch_uuid required"))
-		return
-	}
 	if req.FromBranchUUID == req.ToBranchUUID {
-		helpers.JsonErr[any](ctx, "invalid branch", http.StatusBadRequest, errors.New("from and to branch must be different"))
+		helpers.JsonErr[any](ctx, "invalid request", http.StatusBadRequest, errors.New("from_branch_uuid cannot equal to_branch_uuid"))
 		return
 	}
-	if len(req.Items) == 0 {
-		helpers.JsonErr[any](ctx, "missing items", http.StatusBadRequest, errors.New("items required"))
+
+	if req.DriverUUID == "" {
+		helpers.JsonErr[any](ctx, "invalid request", http.StatusBadRequest, errors.New("driver_uuid required"))
 		return
 	}
+
+	tr := dao.StockTransfer{
+		FromBranchUUID: req.FromBranchUUID,
+		ToBranchUUID:   req.ToBranchUUID,
+		DriverUUID:     req.DriverUUID,
+		RequesterNote:  req.Notes,
+		RequestedBy:    req.RequestedBy,
+		Items:          []dao.StockTransferItem{},
+	}
+
+	// Items cuma product_uuid + qty, detail product diambil saat approve / atau bisa kamu enhance nanti
 	for _, it := range req.Items {
-		if it.ProductUUID == "" {
-			helpers.JsonErr[any](ctx, "invalid item", http.StatusBadRequest, errors.New("product_uuid required"))
-			return
-		}
-		if it.Unit == "" {
-			helpers.JsonErr[any](ctx, "invalid item", http.StatusBadRequest, errors.New("unit required"))
-			return
-		}
-		if it.Qty <= 0 {
-			helpers.JsonErr[any](ctx, "invalid item", http.StatusBadRequest, errors.New("qty must be > 0"))
-			return
-		}
+		tr.Items = append(tr.Items, dao.StockTransferItem{
+			ProductUUID: it.ProductUUID,
+			Qty:         it.Qty,
+		})
 	}
 
-	res, err := s.repo.Create(&req)
+	res, err := s.repo.CreateDraft(&tr)
 	if err != nil {
-		helpers.JsonErr[any](ctx, "failed to request transfer", http.StatusInternalServerError, err)
-		return
-	}
-	helpers.JsonOK(ctx, "success", res)
-}
-
-func (s *StockTransferServiceImpl) Receive(ctx *gin.Context) {
-	uuid := ctx.Param("uuid")
-	if uuid == "" {
-		helpers.JsonErr[any](ctx, "missing uuid", http.StatusBadRequest, errors.New("uuid required"))
-		return
-	}
-
-	// minimal: ambil dari header / token claim kalau kamu sudah punya helper
-	receivedBy := ctx.GetString("user_uuid") // kalau middleware kamu set ini
-	if receivedBy == "" {
-		receivedBy = "SYSTEM"
-	}
-
-	res, err := s.repo.Receive(uuid, receivedBy)
-	if err != nil {
-		helpers.JsonErr[any](ctx, "failed to receive transfer", http.StatusBadRequest, err)
+		helpers.JsonErr[any](ctx, "failed to create stock transfer", http.StatusInternalServerError, err)
 		return
 	}
 	helpers.JsonOK(ctx, "success", res)
@@ -95,24 +76,123 @@ func (s *StockTransferServiceImpl) Detail(ctx *gin.Context) {
 		helpers.JsonErr[any](ctx, "missing uuid", http.StatusBadRequest, errors.New("uuid required"))
 		return
 	}
-	data, err := s.repo.Detail(uuid)
+	res, err := s.repo.Detail(uuid)
 	if err != nil {
 		helpers.JsonErr[any](ctx, "not found", http.StatusNotFound, err)
 		return
 	}
-	helpers.JsonOK(ctx, "success", data)
+	helpers.JsonOK(ctx, "success", res)
 }
 
 func (s *StockTransferServiceImpl) List(ctx *gin.Context) {
-	var req dto.APIRequest[dto.FilterRequest]
+	var req dto.FilterRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		helpers.JsonErr[any](ctx, "invalid request", http.StatusBadRequest, err)
 		return
 	}
-	data, err := s.repo.List(&req)
+	res, err := s.repo.List(&req)
 	if err != nil {
-		helpers.JsonErr[any](ctx, "failed to list transfer", http.StatusInternalServerError, err)
+		helpers.JsonErr[any](ctx, "failed to list stock transfer", http.StatusInternalServerError, err)
 		return
 	}
-	helpers.JsonOK(ctx, "success", data)
+	helpers.JsonOK(ctx, "success", res)
+}
+
+func (s *StockTransferServiceImpl) WarehouseApprove(ctx *gin.Context) {
+	uuid := ctx.Param("uuid")
+	if uuid == "" {
+		helpers.JsonErr[any](ctx, "missing uuid", http.StatusBadRequest, errors.New("uuid required"))
+		return
+	}
+
+	var req dto.StockTransferWarehouseApproveReq
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		helpers.JsonErr[any](ctx, "invalid request", http.StatusBadRequest, err)
+		return
+	}
+
+	accessToken := ctx.GetString("access_token")
+	if accessToken == "" {
+		helpers.JsonErr[any](ctx, "missing access token", http.StatusBadRequest, errors.New("no bearer token"))
+		return
+	}
+
+	profile, err := s.authRepo.ValidateToken(accessToken)
+	if err != nil {
+		helpers.JsonErr[any](ctx, "validate token failed", http.StatusUnauthorized, err)
+		return
+	}
+
+	res, err := s.repo.WarehouseApprove(uuid, req.Notes, profile.UUID)
+	if err != nil {
+		helpers.JsonErr[any](ctx, "failed to approve (warehouse)", http.StatusBadRequest, err)
+		return
+	}
+	helpers.JsonOK(ctx, "success", res)
+}
+
+func (s *StockTransferServiceImpl) DriverAccept(ctx *gin.Context) {
+	uuid := ctx.Param("uuid")
+	if uuid == "" {
+		helpers.JsonErr[any](ctx, "missing uuid", http.StatusBadRequest, errors.New("uuid required"))
+		return
+	}
+
+	var req dto.StockTransferDriverAcceptReq
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		helpers.JsonErr[any](ctx, "invalid request", http.StatusBadRequest, err)
+		return
+	}
+
+	accessToken := ctx.GetString("access_token")
+	if accessToken == "" {
+		helpers.JsonErr[any](ctx, "missing access token", http.StatusBadRequest, errors.New("no bearer token"))
+		return
+	}
+
+	profile, err := s.authRepo.ValidateToken(accessToken)
+	if err != nil {
+		helpers.JsonErr[any](ctx, "validate token failed", http.StatusUnauthorized, err)
+		return
+	}
+
+	res, err := s.repo.DriverAccept(uuid, req.Notes, profile.UUID)
+	if err != nil {
+		helpers.JsonErr[any](ctx, "failed to accept (driver)", http.StatusBadRequest, err)
+		return
+	}
+	helpers.JsonOK(ctx, "success", res)
+}
+
+func (s *StockTransferServiceImpl) ReceiveDone(ctx *gin.Context) {
+	uuid := ctx.Param("uuid")
+	if uuid == "" {
+		helpers.JsonErr[any](ctx, "missing uuid", http.StatusBadRequest, errors.New("uuid required"))
+		return
+	}
+
+	var req dto.StockTransferReceiveReq
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		helpers.JsonErr[any](ctx, "invalid request", http.StatusBadRequest, err)
+		return
+	}
+
+	accessToken := ctx.GetString("access_token")
+	if accessToken == "" {
+		helpers.JsonErr[any](ctx, "missing access token", http.StatusBadRequest, errors.New("no bearer token"))
+		return
+	}
+
+	profile, err := s.authRepo.ValidateToken(accessToken)
+	if err != nil {
+		helpers.JsonErr[any](ctx, "validate token failed", http.StatusUnauthorized, err)
+		return
+	}
+
+	res, err := s.repo.ReceiveDone(uuid, req.Notes, profile.UUID)
+	if err != nil {
+		helpers.JsonErr[any](ctx, "failed to receive (cashier)", http.StatusBadRequest, err)
+		return
+	}
+	helpers.JsonOK(ctx, "success", res)
 }

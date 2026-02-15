@@ -29,28 +29,30 @@ type AuthRepository interface {
 }
 
 type AuthRepositoryImpl struct {
-	authCollection        *mongo.Collection
-	adminCollection       *mongo.Collection
-	userCollection        *mongo.Collection
-	clientCollection      *mongo.Collection
-	companyCollection     *mongo.Collection
-	roleCollection        *mongo.Collection
-	clientUserCollection  *mongo.Collection
-	companyUserCollection *mongo.Collection
+	authCollection         *mongo.Collection
+	adminCollection        *mongo.Collection
+	userCollection         *mongo.Collection
+	clientCollection       *mongo.Collection
+	companyCollection      *mongo.Collection
+	roleCollection         *mongo.Collection
+	clientUserCollection   *mongo.Collection
+	companyUserCollection  *mongo.Collection
+	clientBranchCollection *mongo.Collection
 }
 
 func AuthRepositoryInit(mc *mongo.Client) *AuthRepositoryImpl {
 	dbName := helpers.ProvideDBName()
 	db := mc.Database(dbName)
 	return &AuthRepositoryImpl{
-		authCollection:        db.Collection("auths"),
-		adminCollection:       db.Collection("admins"),
-		userCollection:        db.Collection("users"),
-		clientCollection:      db.Collection("clients"),
-		companyCollection:     db.Collection("companies"),
-		roleCollection:        db.Collection("roles"),
-		clientUserCollection:  db.Collection("client_users"),
-		companyUserCollection: db.Collection("company_users"),
+		authCollection:         db.Collection("auths"),
+		adminCollection:        db.Collection("admins"),
+		userCollection:         db.Collection("users"),
+		clientCollection:       db.Collection("clients"),
+		companyCollection:      db.Collection("companies"),
+		roleCollection:         db.Collection("roles"),
+		clientUserCollection:   db.Collection("client_users"),
+		companyUserCollection:  db.Collection("company_users"),
+		clientBranchCollection: db.Collection("client_branches"),
 	}
 }
 
@@ -482,6 +484,7 @@ func (r *AuthRepositoryImpl) buildAdminProfile(userUUID string) (*dto.UserProfil
 		UUID:        admin.UUID,
 		Client:      company,
 		Role:        role,
+		Branch:      dao.ClientBranch{}, // Admin doesn't have branch, return empty
 		Username:    admin.Username,
 		Name:        admin.Name,
 		Email:       admin.Email,
@@ -505,7 +508,10 @@ func (r *AuthRepositoryImpl) buildClientUserProfile(userUUID string) (*dto.UserP
 	var mapDoc struct {
 		ClientUUID string `bson:"company_uuid"`
 		RoleUUID   string `bson:"role_uuid"`
+		BranchUUID string `bson:"branch_uuid"`
 	}
+
+	var branch dao.ClientBranch
 	_ = r.clientUserCollection.FindOne(ctx, bson.M{"user_uuid": userUUID}).Decode(&mapDoc)
 	log.Println("Mapping doc:", mapDoc)
 	if mapDoc.ClientUUID != "" {
@@ -515,11 +521,15 @@ func (r *AuthRepositoryImpl) buildClientUserProfile(userUUID string) (*dto.UserP
 	if mapDoc.RoleUUID != "" {
 		_ = r.roleCollection.FindOne(ctx, bson.M{"uuid": mapDoc.RoleUUID}).Decode(&role)
 	}
+	if mapDoc.BranchUUID != "" {
+		_ = r.clientBranchCollection.FindOne(ctx, bson.M{"uuid": mapDoc.BranchUUID}).Decode(&branch)
+	}
 
 	return &dto.UserProfile{
 		UUID:        user.UUID,
 		Client:      client,
 		Role:        role,
+		Branch:      branch,
 		Username:    user.Username,
 		Name:        user.Name,
 		Email:       user.Email,

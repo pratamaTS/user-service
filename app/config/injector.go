@@ -35,6 +35,9 @@ var repoSet = wire.NewSet(
 	repository.ImageRepositoryInit, wire.Bind(new(repository.ImageRepository), new(*repository.ImageRepositoryImpl)),
 	repository.ClientBranchRepositoryInit, wire.Bind(new(repository.ClientBranchRepository), new(*repository.ClientBranchRepositoryImpl)),
 	repository.UserRepositoryInit, wire.Bind(new(repository.UserRepository), new(*repository.UserRepositoryImpl)),
+	repository.ProductRepositoryInit, wire.Bind(new(repository.ProductRepository), new(*repository.ProductRepositoryImpl)),
+	repository.StockTransferRepositoryInit, wire.Bind(new(repository.StockTransferRepository), new(*repository.StockTransferRepositoryImpl)),
+	repository.POSTransactionRepositoryInit, wire.Bind(new(repository.POSTransactionRepository), new(*repository.POSTransactionRepositoryImpl)),
 )
 
 var serviceSet = wire.NewSet(
@@ -52,6 +55,9 @@ var serviceSet = wire.NewSet(
 	service.NewClientBranchService, wire.Bind(new(service.ClientBranchService), new(*service.ClientBranchServiceImpl)),
 	service.NewUserService, wire.Bind(new(service.UserService), new(*service.UserServiceImpl)),
 	service.NewClientUserService, wire.Bind(new(service.ClientUserService), new(*service.ClientUserServiceImpl)),
+	service.NewProductService, wire.Bind(new(service.ProductService), new(*service.ProductServiceImpl)),
+	service.NewStockTransferService, wire.Bind(new(service.StockTransferService), new(*service.StockTransferServiceImpl)),
+	service.NewPOSTransactionService, wire.Bind(new(service.POSTransactionService), new(*service.POSTransactionServiceImpl)),
 )
 
 var controllerSet = wire.NewSet(
@@ -68,6 +74,9 @@ var controllerSet = wire.NewSet(
 	controller.ClientBranchControllerInit, wire.Bind(new(controller.ClientBranchController), new(*controller.ClientBranchControllerImpl)),
 	controller.UserControllerInit, wire.Bind(new(controller.UserController), new(*controller.UserControllerImpl)),
 	controller.ClientUserControllerInit, wire.Bind(new(controller.ClientUserController), new(*controller.ClientUserControllerImpl)),
+	controller.ProductControllerInit, wire.Bind(new(controller.ProductController), new(*controller.ProductControllerImpl)),
+	controller.StockTransferControllerInit, wire.Bind(new(controller.StockTransferController), new(*controller.StockTransferControllerImpl)),
+	controller.POSTransactionControllerInit, wire.Bind(new(controller.POSTransactionController), new(*controller.POSTransactionControllerImpl)),
 )
 
 func Init() *Initialization {

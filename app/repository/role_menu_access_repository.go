@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sort"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -19,7 +20,7 @@ type RoleMenuAccessRepository interface {
 	SaveRoleMenuAccess(data *dao.RoleMenuAccess) (dao.RoleMenuAccess, error)
 	GetMenusByRole(ctx context.Context, roleUUID string) ([]dto.UserMenu, error)
 	DetailRoleMenuAccess(uuid string) (dao.RoleMenuAccess, error)
-	ListRoleMenuAccess(req *dto.FilterRequest) ([]dao.RoleMenuAccess, error)
+	ListRoleMenuAccess(req *dto.FilterRequest) ([]dao.ResponseRoleMenuAccess, error)
 	DeleteRoleMenuAccess(uuid string) error
 }
 
@@ -159,26 +160,35 @@ func (u *RoleMenuAccessRepositoryImpl) DetailRoleMenuAccess(uuid string) (dao.Ro
 	return result, err
 }
 
-func (u *RoleMenuAccessRepositoryImpl) ListRoleMenuAccess(req *dto.FilterRequest) ([]dao.RoleMenuAccess, error) {
+func (u *RoleMenuAccessRepositoryImpl) ListRoleMenuAccess(req *dto.FilterRequest) ([]dao.ResponseRoleMenuAccess, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
+	// -------------------------
+	// FILTER (pre-lookup)
+	// -------------------------
 	filter := bson.M{}
-	if req.Search != "" {
-		filter["$or"] = []bson.M{
-			{"role_uuid": bson.M{"$regex": req.Search, "$options": "i"}},
-			{"menu.title": bson.M{"$regex": req.Search, "$options": "i"}},
-			{"menu.href": bson.M{"$regex": req.Search, "$options": "i"}},
-			{"menu.owner": bson.M{"$regex": req.Search, "$options": "i"}},
-		}
+
+	// search & filter untuk field root (role_uuid, dll) boleh sebelum unwind
+	search := strings.TrimSpace(req.Search)
+	if search != "" {
+		filter["role_uuid"] = bson.M{"$regex": search, "$options": "i"}
 	}
+
 	for key, val := range req.FilterBy {
 		if key == "" || val == nil {
+			continue
+		}
+		// Filter untuk menu.* kita apply setelah lookup
+		if strings.HasPrefix(key, "menu.") || strings.HasPrefix(key, "accessible_menus.menu.") {
 			continue
 		}
 		filter[key] = val
 	}
 
+	// -------------------------
+	// SORT
+	// -------------------------
 	sort := bson.D{}
 	for key, val := range req.SortBy {
 		switch v := val.(type) {
@@ -202,6 +212,9 @@ func (u *RoleMenuAccessRepositoryImpl) ListRoleMenuAccess(req *dto.FilterRequest
 		sort = bson.D{{Key: "created_at", Value: -1}}
 	}
 
+	// -------------------------
+	// PAGINATION
+	// -------------------------
 	page := req.Pagination.Page
 	size := req.Pagination.PageSize
 	if page <= 0 {
@@ -212,18 +225,105 @@ func (u *RoleMenuAccessRepositoryImpl) ListRoleMenuAccess(req *dto.FilterRequest
 	}
 	skip := int64((page - 1) * size)
 
-	opts := options.Find().
-		SetSort(sort).
-		SetSkip(skip).
-		SetLimit(int64(size))
+	// -------------------------
+	// PIPELINE
+	// -------------------------
+	pipeline := mongo.Pipeline{}
 
-	cur, err := u.roleMenuAccessCollection.Find(ctx, filter, opts)
+	// match root
+	if len(filter) > 0 {
+		pipeline = append(pipeline, bson.D{{Key: "$match", Value: filter}})
+	}
+
+	// sort + paging di level dokumen root (sebelum unwind biar paging-nya bener per RoleMenuAccess)
+	pipeline = append(pipeline,
+		bson.D{{Key: "$sort", Value: sort}},
+		bson.D{{Key: "$skip", Value: skip}},
+		bson.D{{Key: "$limit", Value: int64(size)}},
+	)
+
+	// unwind accessible_menus (tiap item jadi 1 dokumen)
+	pipeline = append(pipeline, bson.D{{Key: "$unwind", Value: bson.M{
+		"path":                       "$accessible_menus",
+		"preserveNullAndEmptyArrays": true,
+	}}})
+
+	// lookup menus berdasarkan accessible_menus.menu_uuid -> menus.uuid
+	pipeline = append(pipeline,
+		bson.D{{Key: "$lookup", Value: bson.M{
+			"from":         "menus",
+			"localField":   "accessible_menus.menu_uuid",
+			"foreignField": "uuid",
+			"as":           "_menu",
+		}}},
+		bson.D{{Key: "$unwind", Value: bson.M{
+			"path":                       "$_menu",
+			"preserveNullAndEmptyArrays": true,
+		}}},
+	)
+
+	// set hasil lookup ke accessible_menus.menu
+	pipeline = append(pipeline, bson.D{{Key: "$set", Value: bson.M{
+		"accessible_menus.menu": "$_menu",
+	}}})
+
+	// optional: match search untuk menu fields (setelah lookup)
+	// (kalau mau search req.Search juga cari menu.title/href/owner)
+	if search != "" {
+		pipeline = append(pipeline, bson.D{{Key: "$match", Value: bson.M{
+			"$or": []bson.M{
+				{"role_uuid": bson.M{"$regex": search, "$options": "i"}},
+				{"accessible_menus.menu.title": bson.M{"$regex": search, "$options": "i"}},
+				{"accessible_menus.menu.href": bson.M{"$regex": search, "$options": "i"}},
+				{"accessible_menus.menu.owner": bson.M{"$regex": search, "$options": "i"}},
+			},
+		}}})
+	}
+
+	// apply filterBy untuk menu.* setelah lookup (kalau kamu memang pakai)
+	postLookup := bson.M{}
+	for key, val := range req.FilterBy {
+		if key == "" || val == nil {
+			continue
+		}
+		// dukung dua gaya key: "menu.title" atau "accessible_menus.menu.title"
+		switch {
+		case strings.HasPrefix(key, "menu."):
+			postLookup["accessible_menus."+key] = val
+		case strings.HasPrefix(key, "accessible_menus.menu."):
+			postLookup[key] = val
+		}
+	}
+	if len(postLookup) > 0 {
+		pipeline = append(pipeline, bson.D{{Key: "$match", Value: postLookup}})
+	}
+
+	// group balik jadi 1 dokumen per role_menu_access uuid
+	pipeline = append(pipeline, bson.D{{Key: "$group", Value: bson.M{
+		"_id":            "$uuid",
+		"uuid":           bson.M{"$first": "$uuid"},
+		"role_uuid":      bson.M{"$first": "$role_uuid"},
+		"created_at":     bson.M{"$first": "$created_at"},
+		"created_at_str": bson.M{"$first": "$created_at_str"},
+		"updated_at":     bson.M{"$first": "$updated_at"},
+		"updated_at_str": bson.M{"$first": "$updated_at_str"},
+		"accessible_menus": bson.M{
+			"$push": "$accessible_menus",
+		},
+	}}})
+
+	// bersihin field helper _menu
+	pipeline = append(pipeline, bson.D{{Key: "$project", Value: bson.M{
+		"_id": 0,
+	}}})
+
+	cur, err := u.roleMenuAccessCollection.Aggregate(ctx, pipeline)
 	if err != nil {
 		return nil, err
 	}
 	defer cur.Close(ctx)
 
-	var list []dao.RoleMenuAccess
+	var list []dao.ResponseRoleMenuAccess
 	if err := cur.All(ctx, &list); err != nil {
 		return nil, err
 	}

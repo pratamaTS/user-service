@@ -24,6 +24,9 @@ type Initialization struct {
 	FileRepo               repository.ImageRepository
 	ClientBranchRepo       repository.ClientBranchRepository
 	UserRepo               repository.UserRepository
+	ProductRepo            repository.ProductRepository
+	StockTransferRepo      repository.StockTransferRepository
+	PosTransactionRepo     repository.POSTransactionRepository
 
 	AdminSvc          service.AdminService
 	ClientSvc         service.ClientService
@@ -38,6 +41,9 @@ type Initialization struct {
 	ClientBranchSvc   service.ClientBranchService
 	UserSvc           service.UserService
 	ClientUserSvc     service.ClientUserService
+	ProductSvc        service.ProductService
+	StockTransferSvc  service.StockTransferService
+	PosTransactionSvc service.POSTransactionService
 
 	AdminCtrl          controller.AdminController
 	ClientCtrl         controller.ClientController
@@ -52,6 +58,9 @@ type Initialization struct {
 	ClientBranchCtrl   controller.ClientBranchController
 	UserCtrl           controller.UserController
 	ClientUserCtrl     controller.ClientUserController
+	ProductCtrl        controller.ProductController
+	StockTransferCtrl  controller.StockTransferController
+	PosTransactionCtrl controller.POSTransactionController
 }
 
 func NewInitialization(
@@ -71,6 +80,9 @@ func NewInitialization(
 	fileRepo repository.ImageRepository,
 	clientBranchRepo repository.ClientBranchRepository,
 	userRepo repository.UserRepository,
+	productRepo repository.ProductRepository,
+	stockTransferRepo repository.StockTransferRepository,
+	posTransactionRepo repository.POSTransactionRepository,
 
 	adminSvc service.AdminService,
 	clientSvc service.ClientService,
@@ -85,6 +97,9 @@ func NewInitialization(
 	clientBranchSvc service.ClientBranchService,
 	userSvc service.UserService,
 	clientUserSvc service.ClientUserService,
+	productSvc service.ProductService,
+	stockTransferSvc service.StockTransferService,
+	posTransactionSvc service.POSTransactionService,
 
 	adminCtrl controller.AdminController,
 	clientCtrl controller.ClientController,
@@ -99,6 +114,9 @@ func NewInitialization(
 	clientBranchCtrl controller.ClientBranchController,
 	userCtrl controller.UserController,
 	clientUserCtrl controller.ClientUserController,
+	productCtrl controller.ProductController,
+	stockTransferCtrl controller.StockTransferController,
+	posTransactionCtrl controller.POSTransactionController,
 ) *Initialization {
 	return &Initialization{
 		AdminRepo:              adminRepo,
@@ -117,6 +135,9 @@ func NewInitialization(
 		FileRepo:               fileRepo,
 		ClientBranchRepo:       clientBranchRepo,
 		UserRepo:               userRepo,
+		ProductRepo:            productRepo,
+		StockTransferRepo:      stockTransferRepo,
+		PosTransactionRepo:     posTransactionRepo,
 
 		AdminSvc:          adminSvc,
 		ClientSvc:         clientSvc,
@@ -131,6 +152,9 @@ func NewInitialization(
 		ClientBranchSvc:   clientBranchSvc,
 		UserSvc:           userSvc,
 		ClientUserSvc:     clientUserSvc,
+		ProductSvc:        productSvc,
+		StockTransferSvc:  stockTransferSvc,
+		PosTransactionSvc: posTransactionSvc,
 
 		AdminCtrl:          adminCtrl,
 		ClientCtrl:         clientCtrl,
@@ -145,5 +169,8 @@ func NewInitialization(
 		ClientBranchCtrl:   clientBranchCtrl,
 		UserCtrl:           userCtrl,
 		ClientUserCtrl:     clientUserCtrl,
+		ProductCtrl:        productCtrl,
+		StockTransferCtrl:  stockTransferCtrl,
+		PosTransactionCtrl: posTransactionCtrl,
 	}
 }

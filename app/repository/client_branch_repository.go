@@ -17,7 +17,7 @@ import (
 type ClientBranchRepository interface {
 	SaveClientBranch(data *dao.ClientBranch) (dao.ClientBranch, error)
 	DetailClientBranch(uuid string) (dao.ClientBranch, error)
-	ListClientBranch(req *dto.APIRequest[dto.FilterRequest]) ([]dao.ClientBranch, error)
+	ListClientBranch(req *dto.FilterRequest) ([]dao.ClientBranch, error)
 	DeleteClientBranch(uuid string) error
 }
 
@@ -100,7 +100,7 @@ func (u *ClientBranchRepositoryImpl) DetailClientBranch(uuid string) (dao.Client
 	return result, err
 }
 
-func (u *ClientBranchRepositoryImpl) ListClientBranch(req *dto.APIRequest[dto.FilterRequest]) ([]dao.ClientBranch, error) {
+func (u *ClientBranchRepositoryImpl) ListClientBranch(req *dto.FilterRequest) ([]dao.ClientBranch, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -112,7 +112,7 @@ func (u *ClientBranchRepositoryImpl) ListClientBranch(req *dto.APIRequest[dto.Fi
 			{"user_uuid": bson.M{"$regex": req.Search, "$options": "i"}},
 		}
 	}
-	for k, v := range req.FilterBy.FilterBy {
+	for k, v := range req.FilterBy {
 		if k == "" || v == nil {
 			continue
 		}
@@ -120,7 +120,7 @@ func (u *ClientBranchRepositoryImpl) ListClientBranch(req *dto.APIRequest[dto.Fi
 	}
 
 	sort := bson.D{}
-	for k, v := range req.SortBy.SortBy {
+	for k, v := range req.SortBy {
 		switch tv := v.(type) {
 		case string:
 			if tv == "asc" || tv == "ASC" || tv == "1" {
@@ -142,8 +142,8 @@ func (u *ClientBranchRepositoryImpl) ListClientBranch(req *dto.APIRequest[dto.Fi
 		sort = bson.D{{Key: "created_at", Value: -1}}
 	}
 
-	page := req.Pagination.Pagination.Page
-	size := req.Pagination.Pagination.PageSize
+	page := req.Pagination.Page
+	size := req.Pagination.PageSize
 	if page <= 0 {
 		page = 1
 	}

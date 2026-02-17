@@ -16,8 +16,13 @@ func JsonOK[T any](ctx *gin.Context, msg string, data T) {
 }
 
 func JsonErr[T any](ctx *gin.Context, msg string, code int, err error) {
+	message := msg
+	if err != nil {
+		message = msg + ": " + err.Error()
+	}
+
 	ctx.JSON(code, dto.APIResponse[T]{
 		Error:   true,
-		Message: msg + ": " + err.Error(),
+		Message: message,
 	})
 }

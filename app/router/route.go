@@ -168,5 +168,10 @@ func Init(init *config.Initialization) *gin.Engine {
 		attendance.POST("/upsert", init.AttendanceCtrl.Upsert)
 	}
 
+	dashboard := router.Group("/dashboard", middleware.JWTAuthMiddleware())
+	{
+		dashboard.POST("/owner/summary", init.DashboardCtrl.OwnerSummary)
+	}
+
 	return router
 }

@@ -69,8 +69,11 @@ func (r *StockTransferRepositoryImpl) CreateDraft(data *dao.StockTransfer) (dao.
 		}
 
 		it.SKU = product.SKU
+		it.Barcode = product.Barcode
 		it.Name = product.Name
 		it.BaseUnit = product.BaseUnit
+		it.Description = product.Description
+		it.Units = product.Units
 		it.Cost = product.Cost
 		it.Price = product.Price
 		it.Image = product.Image
@@ -113,12 +116,11 @@ func (r *StockTransferRepositoryImpl) List(req *dto.FilterRequest) ([]dao.StockT
 
 	filter := bson.M{}
 
-	// ✅ Search: aku tetap support "notes" lama, tapi juga tambahin requester_note yg bener sesuai DAO
 	if req.Search != "" {
 		filter["$or"] = []bson.M{
 			{"uuid": bson.M{"$regex": req.Search, "$options": "i"}},
-			{"notes": bson.M{"$regex": req.Search, "$options": "i"}},          // legacy
-			{"requester_note": bson.M{"$regex": req.Search, "$options": "i"}}, // ✅ correct field
+			{"notes": bson.M{"$regex": req.Search, "$options": "i"}},
+			{"requester_note": bson.M{"$regex": req.Search, "$options": "i"}},
 			{"items.name": bson.M{"$regex": req.Search, "$options": "i"}},
 			{"items.sku": bson.M{"$regex": req.Search, "$options": "i"}},
 		}
@@ -131,7 +133,6 @@ func (r *StockTransferRepositoryImpl) List(req *dto.FilterRequest) ([]dao.StockT
 
 		rv := reflect.ValueOf(v)
 
-		// ✅ kalau v adalah slice/array => pakai $in
 		if rv.Kind() == reflect.Slice || rv.Kind() == reflect.Array {
 			// handle empty list: skip (atau set impossible match)
 			if rv.Len() == 0 {
@@ -148,7 +149,6 @@ func (r *StockTransferRepositoryImpl) List(req *dto.FilterRequest) ([]dao.StockT
 			continue
 		}
 
-		// ✅ normal equals
 		filter[k] = v
 	}
 
@@ -459,8 +459,6 @@ func (r *StockTransferRepositoryImpl) ReceiveDone(uuid, notes, receivedBy string
 	ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
 	defer cancel()
 
-	log.Print("Receiving stock transfer: ", uuid, " by ", receivedBy)
-
 	// validate kasir role
 	var receiver bson.M
 	if err := r.userCol.FindOne(ctx, bson.M{"user_uuid": receivedBy}).Decode(&receiver); err != nil {
@@ -519,8 +517,11 @@ func (r *StockTransferRepositoryImpl) ReceiveDone(uuid, notes, receivedBy string
 				"uuid":           helpers.GenerateUUID(),
 				"branch_uuid":    tr.ToBranchUUID,
 				"sku":            it.SKU,
+				"barcode":        it.Barcode,
 				"name":           it.Name,
+				"description":    it.Description,
 				"base_unit":      it.BaseUnit,
+				"units":          it.Units,
 				"cost":           it.Cost,
 				"price":          it.Price,
 				"image":          it.Image,

@@ -289,8 +289,13 @@ func (s *AuthServiceImpl) Me(ctx *gin.Context) {
 				resp["subscription"] = sub
 			}
 
-			if subErr != nil || !allowed {
-				helpers.JsonErr[any](ctx, "subscription inactive or expired", http.StatusForbidden, subErr)
+			if subErr != nil {
+				helpers.JsonErr[any](ctx, "failed to check subscription", http.StatusInternalServerError, subErr)
+				return
+			}
+
+			if !allowed {
+				helpers.JsonErr[any](ctx, "subscription inactive or expired", http.StatusForbidden, nil)
 				return
 			}
 		}

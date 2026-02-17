@@ -20,6 +20,9 @@ type ProductRepository interface {
 	DetailProduct(uuid string) (dao.Product, error)
 	ListProduct(req *dto.FilterRequest) ([]dao.Product, error)
 	DeleteProduct(uuid string) error
+
+	DecreaseStockIfEnough(productUUID string, qty int64) error
+	IncreaseStock(productUUID string, qty int64) error
 }
 
 type ProductRepositoryImpl struct {
@@ -216,5 +219,69 @@ func (r *ProductRepositoryImpl) DeleteProduct(uuid string) error {
 	defer cancel()
 
 	_, err := r.productCollection.DeleteOne(ctx, bson.M{"uuid": uuid})
+	return err
+}
+
+func (r *ProductRepositoryImpl) DecreaseStockIfEnough(productUUID string, qty int64) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if productUUID == "" {
+		return errors.New("product_uuid required")
+	}
+	if qty <= 0 {
+		return errors.New("qty must be > 0")
+	}
+
+	filter := bson.M{
+		"uuid":      productUUID,
+		"is_active": true,
+		"stock":     bson.M{"$gte": qty},
+	}
+
+	now := time.Now()
+	update := bson.M{
+		"$inc": bson.M{"stock": -qty},
+		"$set": bson.M{
+			"updated_at":     now.Unix(),
+			"updated_at_str": now.Format(time.RFC3339),
+		},
+	}
+
+	res, err := r.productCollection.UpdateOne(ctx, filter, update)
+	if err != nil {
+		return err
+	}
+	if res.MatchedCount == 0 {
+		return errors.New("stock not enough or product not found")
+	}
+	return nil
+}
+
+func (r *ProductRepositoryImpl) IncreaseStock(productUUID string, qty int64) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if productUUID == "" {
+		return errors.New("product_uuid required")
+	}
+	if qty <= 0 {
+		return errors.New("qty must be > 0")
+	}
+
+	filter := bson.M{
+		"uuid":      productUUID,
+		"is_active": true,
+	}
+	now := time.Now()
+	update := bson.M{
+		"$inc": bson.M{"stock": qty},
+		"$set": bson.M{
+			"updated_at":     now.Unix(),
+			"updated_at_str": now.Format(time.RFC3339),
+		},
+	}
+
+	_, err := r.productCollection.UpdateOne(ctx, filter, update)
 	return err
 }

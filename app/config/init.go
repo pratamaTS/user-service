@@ -27,6 +27,7 @@ type Initialization struct {
 	ProductRepo            repository.ProductRepository
 	StockTransferRepo      repository.StockTransferRepository
 	PosTransactionRepo     repository.POSTransactionRepository
+	AttendanceRepo         repository.AttendanceRepository
 
 	AdminSvc          service.AdminService
 	ClientSvc         service.ClientService
@@ -44,6 +45,7 @@ type Initialization struct {
 	ProductSvc        service.ProductService
 	StockTransferSvc  service.StockTransferService
 	PosTransactionSvc service.POSTransactionService
+	AttendanceSvc     service.AttendanceService
 
 	AdminCtrl          controller.AdminController
 	ClientCtrl         controller.ClientController
@@ -61,6 +63,7 @@ type Initialization struct {
 	ProductCtrl        controller.ProductController
 	StockTransferCtrl  controller.StockTransferController
 	PosTransactionCtrl controller.POSTransactionController
+	AttendanceCtrl     controller.AttendanceController
 }
 
 func NewInitialization(
@@ -83,6 +86,7 @@ func NewInitialization(
 	productRepo repository.ProductRepository,
 	stockTransferRepo repository.StockTransferRepository,
 	posTransactionRepo repository.POSTransactionRepository,
+	attendanceRepo repository.AttendanceRepository,
 
 	adminSvc service.AdminService,
 	clientSvc service.ClientService,
@@ -100,6 +104,7 @@ func NewInitialization(
 	productSvc service.ProductService,
 	stockTransferSvc service.StockTransferService,
 	posTransactionSvc service.POSTransactionService,
+	attendanceSvc service.AttendanceService,
 
 	adminCtrl controller.AdminController,
 	clientCtrl controller.ClientController,
@@ -117,6 +122,7 @@ func NewInitialization(
 	productCtrl controller.ProductController,
 	stockTransferCtrl controller.StockTransferController,
 	posTransactionCtrl controller.POSTransactionController,
+	attendanceCtrl controller.AttendanceController,
 ) *Initialization {
 	return &Initialization{
 		AdminRepo:              adminRepo,
@@ -138,6 +144,7 @@ func NewInitialization(
 		ProductRepo:            productRepo,
 		StockTransferRepo:      stockTransferRepo,
 		PosTransactionRepo:     posTransactionRepo,
+		AttendanceRepo:         attendanceRepo,
 
 		AdminSvc:          adminSvc,
 		ClientSvc:         clientSvc,
@@ -155,6 +162,7 @@ func NewInitialization(
 		ProductSvc:        productSvc,
 		StockTransferSvc:  stockTransferSvc,
 		PosTransactionSvc: posTransactionSvc,
+		AttendanceSvc:     attendanceSvc,
 
 		AdminCtrl:          adminCtrl,
 		ClientCtrl:         clientCtrl,
@@ -172,5 +180,6 @@ func NewInitialization(
 		ProductCtrl:        productCtrl,
 		StockTransferCtrl:  stockTransferCtrl,
 		PosTransactionCtrl: posTransactionCtrl,
+		AttendanceCtrl:     attendanceCtrl,
 	}
 }

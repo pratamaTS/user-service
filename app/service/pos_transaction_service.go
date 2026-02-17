@@ -149,7 +149,9 @@ func (s *POSTransactionServiceImpl) Checkout(ctx *gin.Context) {
 			SKU:         p.SKU,
 			Barcode:     p.Barcode,
 			Name:        p.Name,
-			Unit:        p.BaseUnit,
+			Description: p.Description,
+			BaseUnit:    p.BaseUnit,
+			Units:       p.Units,
 			Price:       p.Price,
 			Qty:         it.Qty,
 			LineTotal:   line,
@@ -170,19 +172,12 @@ func (s *POSTransactionServiceImpl) Checkout(ctx *gin.Context) {
 	// 1) decrement stock per item (atomic per document)
 	decOK := make([]decPlan, 0, len(plans))
 	for _, pl := range plans {
-		ok, err := decreaseStockIfEnough(s.prodRepo, pl.ProductUUID, pl.Qty)
+		err := s.prodRepo.DecreaseStockIfEnough(pl.ProductUUID, pl.Qty)
 		if err != nil {
 			for i := len(decOK) - 1; i >= 0; i-- {
-				_ = increaseStock(s.prodRepo, decOK[i].ProductUUID, decOK[i].Qty)
+				_ = s.prodRepo.IncreaseStock(decOK[i].ProductUUID, decOK[i].Qty)
 			}
 			helpers.JsonErr[any](ctx, "failed to update stock", http.StatusInternalServerError, err)
-			return
-		}
-		if !ok {
-			for i := len(decOK) - 1; i >= 0; i-- {
-				_ = increaseStock(s.prodRepo, decOK[i].ProductUUID, decOK[i].Qty)
-			}
-			helpers.JsonErr[any](ctx, "stock not enough", http.StatusBadRequest, errors.New("stock changed, please retry"))
 			return
 		}
 		decOK = append(decOK, pl)
@@ -211,7 +206,7 @@ func (s *POSTransactionServiceImpl) Checkout(ctx *gin.Context) {
 	if err != nil {
 		// rollback stock kalau insert gagal
 		for i := len(decOK) - 1; i >= 0; i-- {
-			_ = increaseStock(s.prodRepo, decOK[i].ProductUUID, decOK[i].Qty)
+			_ = s.prodRepo.IncreaseStock(decOK[i].ProductUUID, decOK[i].Qty)
 		}
 		helpers.JsonErr[any](ctx, "failed to checkout", http.StatusInternalServerError, err)
 		return
@@ -277,7 +272,11 @@ func (s *POSTransactionServiceImpl) Void(ctx *gin.Context) {
 		if strings.TrimSpace(it.ProductUUID) == "" || it.Qty <= 0 {
 			continue
 		}
-		_ = increaseStock(s.prodRepo, it.ProductUUID, it.Qty)
+		err = s.prodRepo.IncreaseStock(it.ProductUUID, it.Qty)
+		if err != nil {
+			helpers.JsonErr[any](ctx, "failed to return stock", http.StatusInternalServerError, err)
+			return
+		}
 	}
 
 	now := time.Now()
@@ -294,27 +293,4 @@ func (s *POSTransactionServiceImpl) Void(ctx *gin.Context) {
 		return
 	}
 	helpers.JsonOK(ctx, "success", out)
-}
-
-/**
- * stock helpers (repo harus punya method ini)
- */
-func decreaseStockIfEnough(repo repository.ProductRepository, productUUID string, qty int64) (bool, error) {
-	type stockRepo interface {
-		DecreaseStockIfEnough(uuid string, qty int64) (bool, error)
-	}
-	if r, ok := repo.(stockRepo); ok {
-		return r.DecreaseStockIfEnough(productUUID, qty)
-	}
-	return false, errors.New("DecreaseStockIfEnough not implemented")
-}
-
-func increaseStock(repo repository.ProductRepository, productUUID string, qty int64) error {
-	type stockRepo interface {
-		IncreaseStock(uuid string, qty int64) error
-	}
-	if r, ok := repo.(stockRepo); ok {
-		return r.IncreaseStock(productUUID, qty)
-	}
-	return errors.New("IncreaseStock not implemented")
 }

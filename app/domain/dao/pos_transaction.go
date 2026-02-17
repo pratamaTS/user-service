@@ -1,14 +1,16 @@
 package dao
 
 type POSTransactionItem struct {
-	ProductUUID string  `bson:"product_uuid" json:"product_uuid"`
-	SKU         string  `bson:"sku" json:"sku"`
-	Barcode     string  `bson:"barcode" json:"barcode"`
-	Name        string  `bson:"name" json:"name"`
-	Unit        string  `bson:"unit" json:"unit"` // base unit / unit yg dipakai
-	Price       float64 `bson:"price" json:"price"`
-	Qty         int64   `bson:"qty" json:"qty"`
-	LineTotal   float64 `bson:"line_total" json:"line_total"`
+	ProductUUID string        `bson:"product_uuid" json:"product_uuid" validate:"required"`
+	SKU         string        `bson:"sku" json:"sku"`
+	Barcode     string        `bson:"barcode" json:"barcode"`
+	Name        string        `bson:"name" json:"name"`
+	Description string        `bson:"description" json:"description"`
+	BaseUnit    string        `bson:"base_unit" json:"base_unit"`
+	Units       []ProductUnit `bson:"units" json:"units"`
+	Price       float64       `bson:"price" json:"price"`
+	Qty         int64         `bson:"qty" json:"qty"`
+	LineTotal   float64       `bson:"line_total" json:"line_total"`
 }
 
 type POSTransaction struct {

@@ -162,5 +162,11 @@ func Init(init *config.Initialization) *gin.Engine {
 		pos.POST("/scan", init.PosTransactionCtrl.ScanByBarcode)
 	}
 
+	attendance := router.Group("/attendance", middleware.JWTAuthMiddleware())
+	{
+		attendance.POST("/fetch", init.AttendanceCtrl.List)
+		attendance.POST("/upsert", init.AttendanceCtrl.Upsert)
+	}
+
 	return router
 }

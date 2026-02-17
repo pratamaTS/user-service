@@ -12,14 +12,17 @@ const (
 )
 
 type StockTransferItem struct {
-	ProductUUID string  `bson:"product_uuid" json:"product_uuid" validate:"required"`
-	SKU         string  `bson:"sku" json:"sku"`
-	Name        string  `bson:"name" json:"name"`
-	BaseUnit    string  `bson:"base_unit" json:"base_unit"`
-	Qty         int64   `bson:"qty" json:"qty" validate:"required,min=1"`
-	Cost        float64 `bson:"cost" json:"cost"`
-	Price       float64 `bson:"price" json:"price"`
-	Image       string  `bson:"image" json:"image"`
+	ProductUUID string        `bson:"product_uuid" json:"product_uuid" validate:"required"`
+	SKU         string        `bson:"sku" json:"sku"`
+	Barcode     string        `bson:"barcode" json:"barcode"`
+	Name        string        `bson:"name" json:"name"`
+	Description string        `bson:"description" json:"description"`
+	BaseUnit    string        `bson:"base_unit" json:"base_unit"`
+	Units       []ProductUnit `bson:"units" json:"units"`
+	Cost        float64       `bson:"cost" json:"cost"`
+	Price       float64       `bson:"price" json:"price"`
+	Qty         int64         `bson:"qty" json:"qty" validate:"required,min=1"`
+	Image       string        `bson:"image" json:"image"`
 }
 
 type StockTransfer struct {

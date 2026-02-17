@@ -39,6 +39,7 @@ var repoSet = wire.NewSet(
 	repository.StockTransferRepositoryInit, wire.Bind(new(repository.StockTransferRepository), new(*repository.StockTransferRepositoryImpl)),
 	repository.POSTransactionRepositoryInit, wire.Bind(new(repository.POSTransactionRepository), new(*repository.POSTransactionRepositoryImpl)),
 	repository.AttendanceRepositoryInit, wire.Bind(new(repository.AttendanceRepository), new(*repository.AttendanceRepositoryImpl)),
+	repository.DashboardRepositoryInit, wire.Bind(new(repository.DashboardRepository), new(*repository.DashboardRepositoryImpl)),
 )
 
 var serviceSet = wire.NewSet(
@@ -60,6 +61,7 @@ var serviceSet = wire.NewSet(
 	service.NewStockTransferService, wire.Bind(new(service.StockTransferService), new(*service.StockTransferServiceImpl)),
 	service.NewPOSTransactionService, wire.Bind(new(service.POSTransactionService), new(*service.POSTransactionServiceImpl)),
 	service.NewAttendanceService, wire.Bind(new(service.AttendanceService), new(*service.AttendanceServiceImpl)),
+	service.NewDashboardService, wire.Bind(new(service.DashboardService), new(*service.DashboardServiceImpl)),
 )
 
 var controllerSet = wire.NewSet(
@@ -80,6 +82,7 @@ var controllerSet = wire.NewSet(
 	controller.StockTransferControllerInit, wire.Bind(new(controller.StockTransferController), new(*controller.StockTransferControllerImpl)),
 	controller.POSTransactionControllerInit, wire.Bind(new(controller.POSTransactionController), new(*controller.POSTransactionControllerImpl)),
 	controller.AttendanceControllerInit, wire.Bind(new(controller.AttendanceController), new(*controller.AttendanceControllerImpl)),
+	controller.DashboardControllerInit, wire.Bind(new(controller.DashboardController), new(*controller.DashboardControllerImpl)),
 )
 
 func Init() *Initialization {

@@ -40,6 +40,7 @@ var repoSet = wire.NewSet(
 	repository.POSTransactionRepositoryInit, wire.Bind(new(repository.POSTransactionRepository), new(*repository.POSTransactionRepositoryImpl)),
 	repository.AttendanceRepositoryInit, wire.Bind(new(repository.AttendanceRepository), new(*repository.AttendanceRepositoryImpl)),
 	repository.DashboardRepositoryInit, wire.Bind(new(repository.DashboardRepository), new(*repository.DashboardRepositoryImpl)),
+	repository.NotificationRepositoryInit, wire.Bind(new(repository.NotificationRepository), new(*repository.NotificationRepositoryImpl)),
 )
 
 var serviceSet = wire.NewSet(
@@ -62,6 +63,7 @@ var serviceSet = wire.NewSet(
 	service.NewPOSTransactionService, wire.Bind(new(service.POSTransactionService), new(*service.POSTransactionServiceImpl)),
 	service.NewAttendanceService, wire.Bind(new(service.AttendanceService), new(*service.AttendanceServiceImpl)),
 	service.NewDashboardService, wire.Bind(new(service.DashboardService), new(*service.DashboardServiceImpl)),
+	service.NewNotificationService, wire.Bind(new(service.NotificationService), new(*service.NotificationServiceImpl)),
 )
 
 var controllerSet = wire.NewSet(
@@ -83,6 +85,7 @@ var controllerSet = wire.NewSet(
 	controller.POSTransactionControllerInit, wire.Bind(new(controller.POSTransactionController), new(*controller.POSTransactionControllerImpl)),
 	controller.AttendanceControllerInit, wire.Bind(new(controller.AttendanceController), new(*controller.AttendanceControllerImpl)),
 	controller.DashboardControllerInit, wire.Bind(new(controller.DashboardController), new(*controller.DashboardControllerImpl)),
+	controller.NotificationControllerInit, wire.Bind(new(controller.NotificationController), new(*controller.NotificationControllerImpl)),
 )
 
 func Init() *Initialization {

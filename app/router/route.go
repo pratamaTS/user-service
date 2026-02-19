@@ -171,6 +171,19 @@ func Init(init *config.Initialization) *gin.Engine {
 	dashboard := router.Group("/dashboard", middleware.JWTAuthMiddleware())
 	{
 		dashboard.POST("/owner/summary", init.DashboardCtrl.OwnerSummary)
+		dashboard.POST("/kasir/summary", init.DashboardCtrl.KasirSummary)
+		dashboard.POST("/gudang/summary", init.DashboardCtrl.GudangSummary)
+		dashboard.POST("/driver/summary", init.DashboardCtrl.DriverSummary)
+	}
+
+	notification := router.Group("/notifications", middleware.JWTAuthMiddleware())
+	{
+		notification.POST("/fetch", init.NotifCtrl.Fetch)
+		notification.POST("/:uuid/read", init.NotifCtrl.MarkRead)
+		notification.POST("/read-all", init.NotifCtrl.MarkReadAll)
+
+		notification.DELETE("/clear", init.NotifCtrl.Clear)
+		notification.DELETE("/clear-all", init.NotifCtrl.ClearAll)
 	}
 
 	return router

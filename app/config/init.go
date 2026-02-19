@@ -29,6 +29,7 @@ type Initialization struct {
 	PosTransactionRepo     repository.POSTransactionRepository
 	AttendanceRepo         repository.AttendanceRepository
 	DashboardRepo          repository.DashboardRepository
+	NotifRepo              repository.NotificationRepository
 
 	AdminSvc          service.AdminService
 	ClientSvc         service.ClientService
@@ -48,6 +49,7 @@ type Initialization struct {
 	PosTransactionSvc service.POSTransactionService
 	AttendanceSvc     service.AttendanceService
 	DashboardSvc      service.DashboardService
+	NotifSvc          service.NotificationService
 
 	AdminCtrl          controller.AdminController
 	ClientCtrl         controller.ClientController
@@ -67,6 +69,7 @@ type Initialization struct {
 	PosTransactionCtrl controller.POSTransactionController
 	AttendanceCtrl     controller.AttendanceController
 	DashboardCtrl      controller.DashboardController
+	NotifCtrl          controller.NotificationController
 }
 
 func NewInitialization(
@@ -91,6 +94,7 @@ func NewInitialization(
 	posTransactionRepo repository.POSTransactionRepository,
 	attendanceRepo repository.AttendanceRepository,
 	dashboardRepo repository.DashboardRepository,
+	notifRepo repository.NotificationRepository,
 
 	adminSvc service.AdminService,
 	clientSvc service.ClientService,
@@ -110,6 +114,7 @@ func NewInitialization(
 	posTransactionSvc service.POSTransactionService,
 	attendanceSvc service.AttendanceService,
 	dashboardSvc service.DashboardService,
+	notifSvc service.NotificationService,
 
 	adminCtrl controller.AdminController,
 	clientCtrl controller.ClientController,
@@ -129,6 +134,7 @@ func NewInitialization(
 	posTransactionCtrl controller.POSTransactionController,
 	attendanceCtrl controller.AttendanceController,
 	dashboardCtrl controller.DashboardController,
+	notifCtrl controller.NotificationController,
 ) *Initialization {
 	return &Initialization{
 		AdminRepo:              adminRepo,
@@ -152,6 +158,7 @@ func NewInitialization(
 		PosTransactionRepo:     posTransactionRepo,
 		AttendanceRepo:         attendanceRepo,
 		DashboardRepo:          dashboardRepo,
+		NotifRepo:              notifRepo,
 
 		AdminSvc:          adminSvc,
 		ClientSvc:         clientSvc,
@@ -171,6 +178,7 @@ func NewInitialization(
 		PosTransactionSvc: posTransactionSvc,
 		AttendanceSvc:     attendanceSvc,
 		DashboardSvc:      dashboardSvc,
+		NotifSvc:          notifSvc,
 
 		AdminCtrl:          adminCtrl,
 		ClientCtrl:         clientCtrl,
@@ -190,5 +198,6 @@ func NewInitialization(
 		PosTransactionCtrl: posTransactionCtrl,
 		AttendanceCtrl:     attendanceCtrl,
 		DashboardCtrl:      dashboardCtrl,
+		NotifCtrl:          notifCtrl,
 	}
 }

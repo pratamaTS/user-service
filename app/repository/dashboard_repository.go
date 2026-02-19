@@ -29,6 +29,18 @@ type DashboardRepository interface {
 	CountLowStockSKU(branchUUIDs []string, threshold int64) (int64, error)
 
 	CountDriverAvailable(companyUUID string) (int64, error)
+
+	CountActiveProductsByBranch(branchUUID string) (int64, error)
+	CountTransactionMonth(branchUUID string, monthStart, monthEnd time.Time) (int64, error)
+
+	CountStockRequestInDriver(branchUUIDs []string) (int64, error)
+	SumProductSentToBranchMonth(fromBranchUUID string, monthStart, monthEnd time.Time) (int64, error)
+
+	CountDriverJobToday(driverUUID string, dayStart, dayEnd time.Time) (int64, error)
+	CountDriverJobWaiting(driverUUID string) (int64, error)
+
+	FindGudangBranchUUID(clientUUID string) (string, error)
+	FindLowStockProducts(branchUUIDs []string, threshold int) ([]dao.Product, error)
 }
 
 type DashboardRepositoryImpl struct {
@@ -101,6 +113,30 @@ func (r *DashboardRepositoryImpl) GetCompanyBranchUUIDs(clientUUID string) ([]st
 // ----------------------------------------------------
 // Products
 // ----------------------------------------------------
+func (r *DashboardRepositoryImpl) FindLowStockProducts(branchUUIDs []string, threshold int) ([]dao.Product, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+
+	filter := bson.M{
+		"branch_uuid": bson.M{"$in": branchUUIDs},
+		"is_active":   true,
+		"stock":       bson.M{"$lte": threshold},
+	}
+
+	cur, err := r.productCol.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cur.Close(ctx)
+
+	var out []dao.Product
+	if err := cur.All(ctx, &out); err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
 func (r *DashboardRepositoryImpl) CountActiveProducts(clientUUID string) (int64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 	defer cancel()
@@ -364,4 +400,201 @@ func (r *DashboardRepositoryImpl) CountDriverAvailable(clientUUID string) (int64
 	}
 
 	return totalAvailable, nil
+}
+
+func (r *DashboardRepositoryImpl) FindGudangBranchUUID(clientUUID string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+
+	if clientUUID == "" {
+		return "", errors.New("client_uuid required")
+	}
+
+	var b dao.ClientBranch
+	err := r.branchCol.FindOne(ctx, bson.M{
+		"client_uuid": clientUUID,
+		"is_active":   true,
+		"name":        bson.M{"$regex": "Gudang", "$options": "i"},
+	}).Decode(&b)
+
+	if err != nil {
+		return "", err
+	}
+	if b.UUID == "" {
+		return "", errors.New("gudang branch uuid empty")
+	}
+	return b.UUID, nil
+}
+
+// ✅ Count product aktif di branch tertentu (buat KASIR)
+func (r *DashboardRepositoryImpl) CountActiveProductsByBranch(branchUUID string) (int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+
+	if branchUUID == "" {
+		return 0, errors.New("branch_uuid required")
+	}
+
+	filter := bson.M{
+		"is_active":   true,
+		"branch_uuid": branchUUID,
+	}
+
+	total, err := r.productCol.CountDocuments(ctx, filter)
+	if err != nil {
+		log.Printf("CountActiveProductsByBranch: failed count branch_uuid=%s: %v", branchUUID, err)
+		return 0, err
+	}
+	return total, nil
+}
+
+// ✅ Count trx bulan ini (buat KASIR)
+func (r *DashboardRepositoryImpl) CountTransactionMonth(branchUUID string, monthStart, monthEnd time.Time) (int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+
+	if branchUUID == "" {
+		return 0, errors.New("branch_uuid required")
+	}
+
+	filter := bson.M{
+		"status":      "PAID",
+		"branch_uuid": branchUUID,
+		"created_at":  bson.M{"$gte": monthStart, "$lt": monthEnd},
+	}
+
+	total, err := r.posTrxCol.CountDocuments(ctx, filter)
+	if err != nil {
+		log.Printf("CountTransactionMonth: failed count branch_uuid=%s: %v", branchUUID, err)
+		return 0, err
+	}
+	return total, nil
+}
+
+// ✅ Stock request in driver (status IN_PROGRESS) buat GUDANG widget
+func (r *DashboardRepositoryImpl) CountStockRequestInDriver(branchUUIDs []string) (int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+
+	filter := bson.M{
+		"status": "IN_PROGRESS",
+	}
+	if len(branchUUIDs) > 0 {
+		filter["$or"] = []bson.M{
+			{"from_branch_uuid": bson.M{"$in": branchUUIDs}},
+			{"to_branch_uuid": bson.M{"$in": branchUUIDs}},
+		}
+	}
+
+	total, err := r.stockTransferCol.CountDocuments(ctx, filter)
+	if err != nil {
+		log.Printf("CountStockRequestInDriver: failed count branchUUIDs=%v: %v", branchUUIDs, err)
+		return 0, err
+	}
+	return total, nil
+}
+
+// ✅ Sum total qty item terkirim bulan ini (status RECEIVED / DONE) dari gudang -> branch
+// Catatan: asumsi dokumen stock_transfers punya items: [{qty: number}]
+func (r *DashboardRepositoryImpl) SumProductSentToBranchMonth(fromBranchUUID string, monthStart, monthEnd time.Time) (int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if fromBranchUUID == "" {
+		return 0, errors.New("from_branch_uuid required")
+	}
+
+	match := bson.M{
+		"from_branch_uuid": fromBranchUUID,
+		"created_at":       bson.M{"$gte": monthStart, "$lt": monthEnd},
+		"status": bson.M{"$in": []string{
+			"RECEIVED",
+			"DONE",
+		}},
+	}
+
+	pipeline := mongo.Pipeline{
+		{{Key: "$match", Value: match}},
+		{{Key: "$unwind", Value: "$items"}},
+		{{Key: "$group", Value: bson.M{
+			"_id":     nil,
+			"sum_qty": bson.M{"$sum": "$items.qty"},
+		}}},
+	}
+
+	cur, err := r.stockTransferCol.Aggregate(ctx, pipeline)
+	if err != nil {
+		log.Printf("SumProductSentToBranchMonth: aggregate error: %v", err)
+		return 0, err
+	}
+	defer cur.Close(ctx)
+
+	var out []bson.M
+	if err := cur.All(ctx, &out); err != nil {
+		return 0, err
+	}
+	if len(out) == 0 {
+		return 0, nil
+	}
+
+	switch v := out[0]["sum_qty"].(type) {
+	case int64:
+		return v, nil
+	case int32:
+		return int64(v), nil
+	case float64:
+		return int64(v), nil
+	default:
+		return 0, nil
+	}
+}
+
+// ✅ Driver job today: count transfer assigned to driver in range dayStart-dayEnd
+func (r *DashboardRepositoryImpl) CountDriverJobToday(driverUUID string, dayStart, dayEnd time.Time) (int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+
+	if driverUUID == "" {
+		return 0, errors.New("driver_uuid required")
+	}
+
+	filter := bson.M{
+		"driver_uuid": driverUUID,
+		"created_at":  bson.M{"$gte": dayStart, "$lt": dayEnd},
+		"status": bson.M{"$in": []string{
+			"WAITING_DRIVER",
+			"IN_PROGRESS",
+			"RECEIVED",
+			"DONE",
+		}},
+	}
+
+	total, err := r.stockTransferCol.CountDocuments(ctx, filter)
+	if err != nil {
+		log.Printf("CountDriverJobToday: failed count driver_uuid=%s: %v", driverUUID, err)
+		return 0, err
+	}
+	return total, nil
+}
+
+// ✅ Driver waiting accept: status WAITING_DRIVER
+func (r *DashboardRepositoryImpl) CountDriverJobWaiting(driverUUID string) (int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
+	defer cancel()
+
+	if driverUUID == "" {
+		return 0, errors.New("driver_uuid required")
+	}
+
+	filter := bson.M{
+		"driver_uuid": driverUUID,
+		"status":      "WAITING_DRIVER",
+	}
+
+	total, err := r.stockTransferCol.CountDocuments(ctx, filter)
+	if err != nil {
+		log.Printf("CountDriverJobWaiting: failed count driver_uuid=%s: %v", driverUUID, err)
+		return 0, err
+	}
+	return total, nil
 }

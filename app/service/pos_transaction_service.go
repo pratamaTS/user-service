@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -25,12 +26,49 @@ type POSTransactionService interface {
 }
 
 type POSTransactionServiceImpl struct {
-	trxRepo  repository.POSTransactionRepository
-	prodRepo repository.ProductRepository
+	trxRepo   repository.POSTransactionRepository
+	prodRepo  repository.ProductRepository
+	authRepo  repository.AuthRepository
+	notifRepo repository.NotificationRepository
 }
 
-func NewPOSTransactionService(trxRepo repository.POSTransactionRepository, prodRepo repository.ProductRepository) *POSTransactionServiceImpl {
-	return &POSTransactionServiceImpl{trxRepo: trxRepo, prodRepo: prodRepo}
+func NewPOSTransactionService(trxRepo repository.POSTransactionRepository, prodRepo repository.ProductRepository, authRepo repository.AuthRepository, notifRepo repository.NotificationRepository) *POSTransactionServiceImpl {
+	return &POSTransactionServiceImpl{trxRepo: trxRepo, prodRepo: prodRepo, authRepo: authRepo, notifRepo: notifRepo}
+}
+
+// -------------------------------
+// Notif helper (POS)
+// -------------------------------
+func (s *POSTransactionServiceImpl) createPOSNotif(clientUUID string, branchUUID string, userUUID string, title string, message string, icon string, ref string) {
+	// best-effort (jangan ganggu flow POS)
+	if clientUUID == "" || branchUUID == "" || title == "" || message == "" {
+		return
+	}
+
+	// 1) branch notif
+	_, _ = s.notifRepo.Insert(&dao.Notification{
+		ClientUUID: clientUUID,
+		BranchUUID: branchUUID,
+		Title:      title,
+		Message:    message,
+		Icon:       icon, // success | warning | info
+		Type:       "POS",
+		Ref:        ref, // uuid trx
+	})
+
+	// 2) personal notif (optional)
+	if strings.TrimSpace(userUUID) != "" {
+		_, _ = s.notifRepo.Insert(&dao.Notification{
+			ClientUUID: clientUUID,
+			BranchUUID: branchUUID, // keep same branch_uuid biar konsisten list branch
+			UserUUID:   userUUID,
+			Title:      title,
+			Message:    message,
+			Icon:       icon,
+			Type:       "POS",
+			Ref:        ref,
+		})
+	}
 }
 
 // body: { "branch_uuid": "...", "barcode": "..." }
@@ -71,6 +109,23 @@ func (s *POSTransactionServiceImpl) ScanByBarcode(ctx *gin.Context) {
 }
 
 func (s *POSTransactionServiceImpl) Checkout(ctx *gin.Context) {
+	accessToken := ctx.GetString("access_token")
+	if accessToken == "" {
+		helpers.JsonErr[any](ctx, "missing access token", http.StatusBadRequest, errors.New("no bearer token"))
+		return
+	}
+	profile, err := s.authRepo.ValidateToken(accessToken)
+	if err != nil {
+		helpers.JsonErr[any](ctx, "validate token failed", http.StatusUnauthorized, err)
+		return
+	}
+	clientUUID := profile.Client.UUID
+	userUUID := profile.UUID
+	if clientUUID == "" {
+		helpers.JsonErr[any](ctx, "client uuid not found", http.StatusUnauthorized, errors.New("missing client_uuid"))
+		return
+	}
+
 	var req dto.POSCheckoutRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		helpers.JsonErr[any](ctx, "invalid request", http.StatusBadRequest, err)
@@ -212,6 +267,15 @@ func (s *POSTransactionServiceImpl) Checkout(ctx *gin.Context) {
 		return
 	}
 
+	// ✅ NOTIF: POS Paid (branch + personal)
+	title := "POS Transaction Paid"
+	msg := fmt.Sprintf("Receipt %s • Total %s • %s",
+		out.ReceiptNo,
+		newIDRCurrency(out.Total),
+		out.PaymentMethod,
+	)
+	s.createPOSNotif(clientUUID, out.BranchUUID, userUUID, title, msg, "success", out.UUID)
+
 	helpers.JsonOK(ctx, "success", out)
 }
 
@@ -235,16 +299,60 @@ func (s *POSTransactionServiceImpl) List(ctx *gin.Context) {
 		helpers.JsonErr[any](ctx, "invalid request", http.StatusBadRequest, err)
 		return
 	}
+
 	data, err := s.trxRepo.List(&req)
 	if err != nil {
 		helpers.JsonErr[any](ctx, "failed to list transaction", http.StatusInternalServerError, err)
 		return
 	}
-	helpers.JsonOK(ctx, "success", data)
+
+	out := make([]dto.POSHistoryItem, 0, len(data))
+	for _, tr := range data {
+		out = append(out, dto.POSHistoryItem{
+			UUID:          tr.UUID,
+			BranchUUID:    tr.BranchUUID,
+			ReceiptNo:     tr.ReceiptNo,
+			Status:        tr.Status,
+			PaymentMethod: tr.PaymentMethod,
+
+			SubTotal: tr.SubTotal,
+			Discount: tr.Discount,
+			Total:    tr.Total,
+			Paid:     tr.Paid,
+			Change:   tr.Change,
+
+			CreatedBy: tr.CreatedBy,
+			VoidedBy:  tr.VoidedBy,
+			Note:      tr.Note,
+
+			// ✅ tanggal trx/void format yang kamu minta
+			TrxAt:  helpers.FormatPOSDateTime(tr.CreatedAt),
+			VoidAt: helpers.FormatPOSUnix(tr.VoidedAt),
+		})
+	}
+
+	helpers.JsonOK(ctx, "success", out)
 }
 
 // endpoint: POST /pos/transactions/:uuid/void  body: { "voided_by":"...", "note":"..." }
 func (s *POSTransactionServiceImpl) Void(ctx *gin.Context) {
+	accessToken := ctx.GetString("access_token")
+	if accessToken == "" {
+		helpers.JsonErr[any](ctx, "missing access token", http.StatusBadRequest, errors.New("no bearer token"))
+		return
+	}
+	profile, err := s.authRepo.ValidateToken(accessToken)
+	if err != nil {
+		helpers.JsonErr[any](ctx, "validate token failed", http.StatusUnauthorized, err)
+		return
+	}
+	clientUUID := profile.Client.UUID
+	userUUID := profile.UUID
+	if clientUUID == "" {
+		helpers.JsonErr[any](ctx, "client uuid not found", http.StatusUnauthorized, errors.New("missing client_uuid"))
+		return
+	}
+
 	uuid := ctx.Param("uuid")
 	if strings.TrimSpace(uuid) == "" {
 		helpers.JsonErr[any](ctx, "missing uuid", http.StatusBadRequest, errors.New("uuid required"))
@@ -292,5 +400,32 @@ func (s *POSTransactionServiceImpl) Void(ctx *gin.Context) {
 		helpers.JsonErr[any](ctx, "failed to void", http.StatusInternalServerError, err)
 		return
 	}
+
+	// ✅ NOTIF: POS voided
+	title := "POS Transaction Voided"
+	msg := fmt.Sprintf("Receipt %s dibatalkan • Total %s", out.ReceiptNo, newIDRCurrency(out.Total))
+	s.createPOSNotif(clientUUID, out.BranchUUID, userUUID, title, msg, "warning", out.UUID)
+
 	helpers.JsonOK(ctx, "success", out)
+}
+
+func newIDRCurrency(v float64) string {
+	// format: 123,456 (tanpa Rp)
+	// kamu bisa ganti ke helper format money kamu kalau ada
+	s := strconv.FormatInt(int64(v+0.5), 10)
+	n := len(s)
+	if n <= 3 {
+		return s
+	}
+	var b strings.Builder
+	pre := n % 3
+	if pre == 0 {
+		pre = 3
+	}
+	b.WriteString(s[:pre])
+	for i := pre; i < n; i += 3 {
+		b.WriteString(".")
+		b.WriteString(s[i : i+3])
+	}
+	return b.String()
 }
